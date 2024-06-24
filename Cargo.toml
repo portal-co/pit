@@ -1,0 +1,7 @@
+[workspace]
+members=["pit-core", "pit-patch", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib"]
+resolver="2"
+
+[workspace.dependencies]
+portal-pc-waffle = {git="https://github.com/portal-co/waffle-.git",branch="pr/changes2"}
+waffle-ast = {git="https://github.com/portal-co/more_waffle.git",branch="master"}

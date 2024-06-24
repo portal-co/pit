@@ -1,0 +1,13 @@
+[package]
+name = "pit-patch"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+nom = "7.1.3"
+pit-core = { version = "0.1.0", path = "../pit-core" }
+portal-pc-waffle.workspace = true
+waffle-ast.workspace = true

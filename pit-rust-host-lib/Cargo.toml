@@ -1,0 +1,11 @@
+[package]
+name = "pit-rust-host-lib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+pit-core = { version = "0.1.0", path = "../pit-core" }
+wasm_runtime_layer = "0.4.0"
