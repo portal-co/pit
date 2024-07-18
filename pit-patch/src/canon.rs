@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, iter::once, mem::take};
 
 use anyhow::Context;
+use sha3::{Digest, Sha3_256};
 use waffle::{
     entity::EntityRef, util::new_sig, BlockTarget, Export, ExportKind, Func, FuncDecl,
     FunctionBody, Import, ImportKind, Module, Operator, SignatureData, Type,
@@ -159,6 +160,39 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
             name: format!("pit/{rid}/~{target}{method}"),
             kind: ExportKind::Func(f),
         });
+    }
+    Ok(())
+}
+pub fn jigger(m: &mut Module) -> anyhow::Result<()>{
+    let mut s = Sha3_256::default();
+    s.update(&m.to_wasm_bytes()?);
+    let s = s.finalize();
+    for i in m.imports.iter_mut(){
+        if !i.module.starts_with("pit/"){
+            continue;
+        }
+        if let Some(a) = i.name.strip_prefix("~"){
+            let a = format!("{a}-{s:?}");
+            let mut s = Sha3_256::default();
+            s.update(a.as_bytes());
+            let s = s.finalize();
+            let s = hex::encode(s);
+            i.name = format!("~{s}");
+        }
+    }
+    for x in m.exports.iter_mut(){
+        if let Some(a) = x.name.strip_prefix("pit/"){
+            if let Some((b,a)) = a.split_once("/~"){
+                if let Some((a,c)) = a.split_once("/"){
+                    let a = format!("{a}-{s:?}");
+                    let mut s = Sha3_256::default();
+                    s.update(a.as_bytes());
+                    let s = s.finalize();
+                    let s = hex::encode(s);
+                    x.name = format!("pit/{b}/~{s}/{c}");
+                }
+            }
+        }
     }
     Ok(())
 }

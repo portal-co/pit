@@ -245,7 +245,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustc_version",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -292,6 +292,26 @@ name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
+
+[[package]]
+name = "externref"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b078507c9badc1c2304de402f373950b30ef80b793096cd2a8c0312c8c676cad"
+dependencies = [
+ "externref-macro",
+]
+
+[[package]]
+name = "externref-macro"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77107325d07454a4de518e92b1e061ded5af8aa32d52edb1fde60c813d1eff1b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.71",
+]
 
 [[package]]
 name = "fallible-iterator"
@@ -484,6 +504,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pit-basic"
+version = "0.1.0"
+dependencies = [
+ "externref",
+]
+
+[[package]]
 name = "pit-core"
 version = "0.1.0"
 dependencies = [
@@ -498,10 +525,26 @@ name = "pit-patch"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "hex",
  "nom",
  "pit-core",
  "portal-pc-waffle",
+ "sha3",
  "waffle-ast",
+]
+
+[[package]]
+name = "pit-rust-generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "nom",
+ "pit-core",
+ "pit-rust-guest",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -514,7 +557,7 @@ dependencies = [
  "quasiquote",
  "quote",
  "sha3",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -526,7 +569,7 @@ dependencies = [
  "proc-macro2",
  "quasiquote",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -560,6 +603,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prettyplease"
+version = "0.2.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f12335488a2f3b0a83b14edad48dca9879ce89b2edd10e80237e4e852dd645e"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.71",
+]
+
+[[package]]
 name = "proc-macro-error"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -585,9 +638,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22244ce15aa966053a896d1accb3a6e68469b97c7f33f284b99f0d576879fc23"
+checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
 ]
@@ -669,7 +722,7 @@ checksum = "bcc303e793d3734489387d205e9b186fac9c6cfacedd98cbb2e8a5943595f3e6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.71",
 ]
 
 [[package]]
@@ -817,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.66"
+version = "2.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c42f3f41a2de00b01c0aaad383c5a45241efc8b2d1eda5661812fda5f3cdcff5"
+checksum = "b146dcf730474b4bcd16c311627b31ede9ab149045db4d6088b3becaea046462"
 dependencies = [
  "proc-macro2",
  "quote",

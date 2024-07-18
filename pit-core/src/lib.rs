@@ -1,11 +1,6 @@
 use derive_more::Display;
 use nom::{
-    bytes::complete::{is_not, tag, take, take_while_m_n},
-    character::complete::{alpha1, char, multispace0},
-    combinator::opt,
-    multi::{many0, separated_list0},
-    sequence::{delimited, tuple},
-    IResult,
+    bytes::complete::{is_not, tag, take, take_while_m_n}, character::complete::{alpha1, alphanumeric1, char, multispace0}, combinator::opt, error::Error, multi::{many0, separated_list0}, sequence::{delimited, tuple}, IResult
 };
 use sha3::{Digest, Sha3_256};
 use std::{collections::BTreeMap, fmt::Display};
@@ -52,10 +47,10 @@ pub enum Arg {
     // Func(Sig),
 }
 pub fn parse_arg(a: &str) -> IResult<&str, Arg> {
-    let (_, a) = multispace0(a)?;
-    let (b, c) = take(1usize)(a)?;
-    match c {
-        "R" => {
+    let (a,_) = multispace0(a)?;
+    // let (c,b) = take(1usize)(a)?;
+    match a.strip_prefix("R") {
+        Some(b) => {
             // if let Some(a) = b.strip_prefix("this"){
             //     let (a, k) = opt(tag("n"))(a)?;
             //     return Ok((
@@ -82,14 +77,14 @@ pub fn parse_arg(a: &str) -> IResult<&str, Arg> {
         //     let (a, x) = parse_sig(a)?;
         //     return Ok((a, Arg::Func(x)));
         // }
-        _ => {
-            let (c, a) = take(3usize)(a)?;
+        None => {
+            let (a,c) = take(3usize)(a)?;
             match c {
                 "I32" => return Ok((a, Arg::I32)),
                 "I64" => return Ok((a, Arg::I64)),
                 "F32" => return Ok((a, Arg::F32)),
                 "F64" => return Ok((a, Arg::F64)),
-                _ => {}
+                _ => return Err(nom::Err::Error(Error::new(a, nom::error::ErrorKind::Tag)))
             }
         }
     }
@@ -121,19 +116,20 @@ pub struct Interface {
 }
 impl Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{")?;
+        write!(f, "{}","{")?;
         for (i, (a, b)) in self.methods.iter().enumerate() {
             if i != 0 {
                 write!(f, ";")?;
             }
             write!(f, "{}{}", a, b)?;
         }
-        return write!(f, "}}");
+        return write!(f, "{}","}");
     }
 }
 pub fn parse_interface(a: &str) -> IResult<&str, Interface> {
     pub fn go(a: &str) -> IResult<&str, Interface> {
-        let (a, s) = separated_list0(char(';'), tuple((multispace0, alpha1, parse_sig)))(a)?;
+        let (a, s) = separated_list0(char(';'), tuple((multispace0, alphanumeric1, parse_sig)))(a)?;
+        let (a,_) = multispace0(a)?;
         return Ok((
             a,
             Interface {

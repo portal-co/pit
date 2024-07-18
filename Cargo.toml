@@ -1,5 +1,5 @@
 [workspace]
-members=["pit-core", "pit-patch", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib"]
+members=[ "pit-basic","pit-core", "pit-patch", "pit-rust-generator", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib"]
 resolver="2"
 
 [workspace.dependencies]

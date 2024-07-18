@@ -25,7 +25,7 @@ pub fn render(root: &TokenStream, i: &Interface) -> TokenStream {
             fn #{format_ident!("{a}")}#{render_sig(root,b,&quote! {&self})}{
                 let Some(#root::wasm_runtime_layer::Export::Func(f)) = self.instance.get_export(unsafe{
                     &*::std::cell::UnsafeCell::raw_get(self.ctx)
-                },#{format!("pit/{}/{}",i.rid_str(),a)}) else{
+                },#{format_ident!("pit/{}/{}",i.rid_str(),a)}) else{
                     panic!("invalid func")
                 };
                 let args = vec![#(#init),*];
