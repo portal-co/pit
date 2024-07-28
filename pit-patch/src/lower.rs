@@ -36,7 +36,11 @@ pub fn import_fn(m: &mut Module, mo: String, n: String, s: SignatureData) -> Fun
     });
     return f;
 }
-pub fn instantiate(m: &mut Module, root: &str) -> anyhow::Result<()> {
+pub struct Cfg {
+    pub unexportable_i32_tables: bool,
+}
+pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
+    let root = "pit_patch_internal_instantiate";
     let i = crate::get_interfaces(m)?;
     let interfaces = i
         .into_iter()
@@ -110,19 +114,20 @@ pub fn instantiate(m: &mut Module, root: &str) -> anyhow::Result<()> {
                             },
                         );
                         f.append_to_block(b, w);
-                        let id = format!("pit-patch-rt/{}", o.to_string().split_once("<").unwrap().0);
+                        let id =
+                            format!("pit-patch-rt/{}", o.to_string().split_once("<").unwrap().0);
                         let mut a = module.exports.iter();
-                        let a = loop{
-                            let Some(b) = a.next() else{
+                        let a = loop {
+                            let Some(b) = a.next() else {
                                 anyhow::bail!("pit patch rt not found")
                             };
-                            if b.name != id{
+                            if b.name != id {
                                 continue;
                             }
-                            let ExportKind::Func(a) = &b.kind else{
+                            let ExportKind::Func(a) = &b.kind else {
                                 continue;
                             };
-                            break *a; 
+                            break *a;
                         };
                         DontObf {}.obf(
                             Operator::Call { function_index: a },
@@ -140,10 +145,18 @@ pub fn instantiate(m: &mut Module, root: &str) -> anyhow::Result<()> {
             }
         }
     }
-    obf_mod(m, &mut X {})?;
-    for t in m.tables.values_mut() {
-        if t.ty == Type::ExternRef {
-            t.ty = Type::FuncRef;
+    if cfg.unexportable_i32_tables {
+        for t in m.tables.values_mut() {
+            if t.ty == Type::ExternRef {
+                t.ty = Type::I32;
+            }
+        }
+    } else {
+        obf_mod(m, &mut X {})?;
+        for t in m.tables.values_mut() {
+            if t.ty == Type::ExternRef {
+                t.ty = Type::FuncRef;
+            }
         }
     }
     for i in take(&mut m.imports) {

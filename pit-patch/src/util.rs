@@ -1,6 +1,10 @@
-use waffle::{util::new_sig, BlockTarget, Func, FunctionBody, Module, Operator, SignatureData, Table, Type};
-use waffle_ast::{add_op, Builder, Expr};
+use std::collections::BTreeMap;
 
+use waffle::{
+    util::new_sig, BlockTarget, Func, FunctionBody, Import, ImportKind, Module, Operator,
+    SignatureData, Table, Type,
+};
+use waffle_ast::{add_op, Builder, Expr};
 
 pub fn talloc(m: &mut Module, t: Table) -> anyhow::Result<Func> {
     let e = m.tables[t].ty.clone();
@@ -126,4 +130,62 @@ pub fn tfree(m: &mut Module, t: Table) -> anyhow::Result<Func> {
     return Ok(m
         .funcs
         .push(waffle::FuncDecl::Body(sig, format!("tfree"), f)));
+}
+
+// use waffle::{util::new_sig, Module};
+
+pub fn to_waffle_type(t: &pit_core::Arg) -> waffle::Type {
+    match t {
+        pit_core::Arg::I32 => waffle::Type::I32,
+        pit_core::Arg::I64 => waffle::Type::I64,
+        pit_core::Arg::F32 => waffle::Type::F32,
+        pit_core::Arg::F64 => waffle::Type::F64,
+        pit_core::Arg::Resource {
+            ty,
+            nullable,
+            take,
+            ann,
+        } => waffle::Type::ExternRef,
+    }
+}
+pub fn to_waffle_sig(m: &mut Module, t: &pit_core::Sig) -> waffle::Signature {
+    return new_sig(
+        m,
+        waffle::SignatureData {
+            params: t.params.iter().map(to_waffle_type).collect(),
+            returns: t.rets.iter().map(to_waffle_type).collect(),
+        },
+    );
+}
+pub fn waffle_funcs(m: &mut Module, i: &pit_core::Interface) -> BTreeMap<String, Func> {
+    return i
+        .methods
+        .iter()
+        .map(|(a, b)| {
+            let module = format!("pit/{}", i.rid_str());
+            let name = a.clone();
+            if let Some(f) = m.imports.iter().find_map(|i| {
+                if i.module == module && i.name == name {
+                    match &i.kind {
+                        ImportKind::Func(f) => Some(*f),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }) {
+                return (a.clone(), f);
+            };
+            let s = to_waffle_sig(m, b);
+            let f = m
+                .funcs
+                .push(waffle::FuncDecl::Import(s, format!("{module}.{name}")));
+            m.imports.push(Import {
+                module,
+                name,
+                kind: waffle::ImportKind::Func(f),
+            });
+            (a.clone(), f)
+        })
+        .collect();
 }

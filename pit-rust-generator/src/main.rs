@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()>{
     };
 
     let v = pit_rust_guest::render(&x, &src);
-    // let v = prettyplease::unparse(&syn::parse_file(&v.to_string())?);
+    let v = prettyplease::unparse(&syn::parse_file(&v.to_string())?);
     let Some(dst) = a.next() else{
         println!("{v}");
         return Ok(());

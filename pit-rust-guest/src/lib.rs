@@ -20,15 +20,15 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream{
     let id2 = format_ident!("R{}",i.rid_str());
     let internal = format_ident!("R{id}_utils");
     let methods = i.methods.iter().map(|(a,b)|quasiquote! {
-        fn #{format_ident!("{a}")}#{render_sig(root,i,b,&quote! {&self})};
+        fn #{format_ident!("{a}")}#{render_sig(root,i,b,&quote! {&mut self})};
     });
     let impl_dyns = i.methods.iter().map(|(a,b)|quasiquote! {
-        fn #{format_ident!("{a}")}#{render_sig(root,i,b,&quote! {&self})}{
+        fn #{format_ident!("{a}")}#{render_sig(root,i,b,&quote! {&mut self})}{
             #[#root::externref::externref(crate = #{quote! {#root::externref}.to_string()})]
             #[link(wasm_import_module = #{format!("pit/{}",i.rid_str())})]
             extern "C"{
-                #[link(wasm_import_name = #a)]
-                fn go #{render_sig(root, i,b, &quote! {this: &#root::externref::Resource<Box<dyn #id2>>})};
+                #[link_name = #a]
+                fn go #{render_sig(root, i,b, &quote! {this: &mut #root::externref::Resource<Box<dyn #id2>>})};
             }
             return unsafe{go(self,#{
                 let params = b.params.iter().enumerate().map(|(a,_)|format_ident!("p{a}"));
@@ -74,21 +74,28 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream{
                     };
                 }
                 #(#chains2)*
-            };
-            mod #internal{
-                use super::#id2;
-                #[#root::externref::externref(crate = #{quote! {#root::externref}.to_string()})]
-                #[link(wasm_import_module = #{format!("pit/{}",i.rid_str())})]
-                extern "C"{
-                    #[link(wasm_import_name = #{format!("~{ha}")})]
-                    fn _push(a: *mut Box<dyn #id2>) -> #root::externref::Resource<Box<dyn #id2>>;
-                }
-                pub fn push(a: Box<dyn #id2>) -> #root::externref::Resource<Box<dyn #id2>>{
-                    return unsafe{
-                        _push(Box::into_raw(Box::new(a)))
+                impl From<Box<dyn #id2>> for #root::externref::Resource<Box<dyn #id2>>{
+                    fn from(a: Box<dyn #id2>) -> Self{
+                        #[#root::externref::externref(crate = #{quote! {#root::externref}.to_string()})]
+                        #[link(wasm_import_module = #{format!("pit/{}",i.rid_str())})]
+                        extern "C"{
+                            #[link_name = #{format!("~{ha}")}]
+                            fn _push(a: *mut Box<dyn #id2>) -> #root::externref::Resource<Box<dyn #id2>>;
+                        }
+                        return unsafe{
+                            _push(Box::into_raw(Box::new(a)))
+                        }
                     }
                 }
-            }
+            };
+            // mod #internal{
+            //     use super::#id2;
+            //     pub fn push(a: Box<dyn #id2>) -> #root::externref::Resource<Box<dyn #id2>>{
+            //         return unsafe{
+            //             _push(Box::into_raw(Box::new(a)))
+            //         }
+            //     }
+            // }
     }
 }
 pub fn render_sig(root: &TokenStream,base: &Interface, s: &Sig, self_: &TokenStream) -> TokenStream{
@@ -113,7 +120,7 @@ pub fn render_ty(root: &TokenStream,base:&Interface, p: &Arg) -> TokenStream{
         Arg::F64 => quote! {
             f64
         },
-        Arg::Resource{ty,nullable,take} => {
+        Arg::Resource{ty,nullable,take, ann } => {
             let ty = match ty{
                 ResTy::Of(a) => quasiquote!{
                     #root::externref::Resource<Box<dyn #{format_ident!("R{}",hex::encode(a))}>>
@@ -133,7 +140,7 @@ pub fn render_ty(root: &TokenStream,base:&Interface, p: &Arg) -> TokenStream{
             let ty = if *take{
                 ty
             }else{
-                quote! {&#ty}
+                quote! {&mut #ty}
             };
             ty
         },

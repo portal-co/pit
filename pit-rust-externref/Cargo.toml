@@ -1,0 +1,7 @@
+[package]
+name = "pit-rust-externref"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+externref = { version = "0.2.0", features = ["processor"] }

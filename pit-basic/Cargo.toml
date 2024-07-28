@@ -5,3 +5,9 @@ edition = "2021"
 
 [dependencies]
 externref = "0.2.0"
+ic-stable-structures = { version = "0.6.5", optional = true }
+
+[features]
+host=[]
+host-ic=["host","ic-stable-structures"]
+ic-stable-structures = ["dep:ic-stable-structures"]
