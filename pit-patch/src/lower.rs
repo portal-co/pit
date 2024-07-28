@@ -262,8 +262,8 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 .collect::<Vec<_>>();
             let t = m.tables.push(TableData {
                 ty: Type::FuncRef,
-                initial: fs.len() as u32,
-                max: Some(fs.len() as u32),
+                initial: fs.len() as u64,
+                max: Some(fs.len() as u64),
                 func_elements: Some(fs.clone()),
             });
             if let ImportKind::Func(f) = i.kind {
