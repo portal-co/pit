@@ -626,6 +626,7 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "pit-core",
+ "pit-rust-guest",
  "proc-macro2",
  "quasiquote",
  "quote",
@@ -969,6 +970,10 @@ checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 dependencies = [
  "unicode-width",
 ]
+
+[[package]]
+name = "tpit-rt"
+version = "0.1.0"
 
 [[package]]
 name = "twox-hash"

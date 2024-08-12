@@ -67,6 +67,28 @@ const _: () = {
         125u8,
         0u8,
     ];
+    fn alloc<T>(m: &mut ::std::collections::BTreeMap<u32, T>, x: T) -> u32 {
+        let mut u = 0;
+        while m.contains_key(&u) {
+            u += 1;
+        }
+        m.insert(u, x);
+        return u;
+    }
+    #[derive(Default)]
+    struct TableCell {
+        all: std::cell::UnsafeCell<
+            ::std::collections::BTreeMap<
+                u32,
+                Box<
+                    dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
+                >,
+            >,
+        >,
+    }
+    unsafe impl Send for TableCell {}
+    unsafe impl Sync for TableCell {}
+    static TABLE: ::std::sync::LazyLock<TableCell> = ::std::sync::LazyLock::new(|| TableCell::default());
     impl R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d
     for ::externref::Resource<
         Box<dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d>,
@@ -128,42 +150,23 @@ const _: () = {
     }
     #[::externref::externref(crate = ":: externref")]
     #[export_name = "pit/68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d/~b3435bc747738a8874da05bf54d1e6b7c57bbab9ef27b0d40a5db3c3c8b6e5b9.drop"]
-    extern "C" fn _drop(
-        a: *mut Box<
-            dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
-        >,
-    ) {
-        unsafe { Box::from_raw(a) };
+    extern "C" fn _drop(a: u32) {
+        unsafe { (&mut *(TABLE.all.get())).remove(&a) };
     }
     #[::externref::externref(crate = ":: externref")]
     #[export_name = "pit/68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d/~b3435bc747738a8874da05bf54d1e6b7c57bbab9ef27b0d40a5db3c3c8b6e5b9/read8"]
-    extern "C" fn read8(
-        id: *mut Box<
-            dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
-        >,
-        p0: u64,
-    ) -> (u32) {
-        return unsafe { &mut *id }.read8(p0);
+    extern "C" fn read8(id: u32, p0: u64) -> (u32) {
+        return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().read8(p0);
     }
     #[::externref::externref(crate = ":: externref")]
     #[export_name = "pit/68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d/~b3435bc747738a8874da05bf54d1e6b7c57bbab9ef27b0d40a5db3c3c8b6e5b9/size"]
-    extern "C" fn size(
-        id: *mut Box<
-            dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
-        >,
-    ) -> (u64) {
-        return unsafe { &mut *id }.size();
+    extern "C" fn size(id: u32) -> (u64) {
+        return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().size();
     }
     #[::externref::externref(crate = ":: externref")]
     #[export_name = "pit/68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d/~b3435bc747738a8874da05bf54d1e6b7c57bbab9ef27b0d40a5db3c3c8b6e5b9/write8"]
-    extern "C" fn write8(
-        id: *mut Box<
-            dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
-        >,
-        p0: u64,
-        p1: u32,
-    ) -> () {
-        return unsafe { &mut *id }.write8(p0, p1);
+    extern "C" fn write8(id: u32, p0: u64, p1: u32) -> () {
+        return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().write8(p0, p1);
     }
     impl From<Box<dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d>>
     for ::externref::Resource<
@@ -179,16 +182,14 @@ const _: () = {
             extern "C" {
                 #[link_name = "~b3435bc747738a8874da05bf54d1e6b7c57bbab9ef27b0d40a5db3c3c8b6e5b9"]
                 fn _push(
-                    a: *mut Box<
-                        dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
-                    >,
+                    a: u32,
                 ) -> ::externref::Resource<
                     Box<
                         dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
                     >,
                 >;
             }
-            return unsafe { _push(Box::into_raw(Box::new(a))) };
+            return unsafe { _push(alloc(&mut *(TABLE.all.get()), a)) };
         }
     }
 };

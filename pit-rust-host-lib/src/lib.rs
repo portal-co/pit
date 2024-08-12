@@ -8,8 +8,7 @@ use std::{
 
 use pit_core::{Arg, Interface};
 use wasm_runtime_layer::{
-    backend::WasmEngine, AsContext, AsContextMut, Extern, ExternRef, Func, FuncType, Imports,
-    Instance, Module, StoreContext, StoreContextMut, Value, ValueType,
+    backend::WasmEngine, AsContext, AsContextMut, Extern, ExternRef, Func, FuncType, Imports, Instance, Module, Store, StoreContext, StoreContextMut, Value, ValueType
 };
 pub fn init<U: AsRef<Instance> + 'static, E: WasmEngine>(
     l: &mut Imports,
@@ -180,3 +179,26 @@ impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U,E> {
 pub type RWrapped<U,E> = ::std::sync::Arc<Wrapped<U,E>>;
 pub extern crate anyhow;
 pub extern crate wasm_runtime_layer;
+
+
+pub struct W<X,U: 'static,E: WasmEngine>{
+    pub r: X,
+    pub store: Arc<StoreCell<U,E>>
+}
+impl<U: 'static,E: WasmEngine,X: Clone> Clone for W<X,U,E>{
+    fn clone(&self) -> Self {
+        Self { r: self.r.clone(), store: self.store.clone() }
+    }
+}
+pub struct StoreCell<U,E: WasmEngine>{
+    pub wrapped: UnsafeCell<Store<U,E>>
+}
+unsafe impl<U: Send,E: Send + wasm_runtime_layer::backend::WasmEngine + wasm_runtime_layer::backend::WasmEngine> Send for StoreCell<U,E>{}
+unsafe impl<U: Sync,E: Sync + wasm_runtime_layer::backend::WasmEngine + wasm_runtime_layer::backend::WasmEngine> Sync for StoreCell<U,E>{}
+impl<U,E: WasmEngine> StoreCell<U,E>{
+    pub unsafe fn get(&self) -> StoreContextMut<'_,U,E>{
+        unsafe{
+            &mut *self.wrapped.get()
+        }.as_context_mut()
+    }
+}
