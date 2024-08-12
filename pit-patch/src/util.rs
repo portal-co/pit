@@ -1,11 +1,14 @@
 use std::{
-    collections::{BTreeMap, BTreeSet}, iter::once, mem::{replace, take}
+    collections::{BTreeMap, BTreeSet},
+    iter::once,
+    mem::{replace, take},
 };
 
 use anyhow::Context;
 use pit_core::{Arg, ResTy};
 use waffle::{
-    util::new_sig, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody, Import, ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value
+    util::new_sig, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody, Import,
+    ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value,
 };
 use waffle_ast::{add_op, results_ref_2, Builder, Expr};
 
@@ -337,7 +340,13 @@ pub fn shim(
     Ok((ep, end))
 }
 pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
-    let t = m.tables.push(TableData{ty: Type::ExternRef, initial: 0, max: None, func_elements: None});
+    let t = m.tables.push(TableData {
+        ty: Type::ExternRef,
+        initial: 0,
+        max: None,
+        func_elements: None,
+        table64: false,
+    });
     let talloc = talloc(m, t)?;
     let tfree = tfree(m, t)?;
     let is = get_interfaces(m)?.into_iter().collect::<BTreeSet<_>>();
@@ -501,7 +510,15 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 .map(|a| a.1)
                                 .collect::<Vec<_>>()
                                 .into_iter()
-                                .zip(once(Arg::Resource { ty: ResTy::This, nullable: false, take: false, ann: vec![] }).chain(x.params.iter().cloned()));
+                                .zip(
+                                    once(Arg::Resource {
+                                        ty: ResTy::This,
+                                        nullable: false,
+                                        take: false,
+                                        ann: vec![],
+                                    })
+                                    .chain(x.params.iter().cloned()),
+                                );
                             let mut v2 = vec![];
                             for (v, r) in args {
                                 let a;
@@ -595,8 +612,17 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
             m.exports.push(export);
         }
     }
-    m.exports.push(Export{name: format!("tpit_alloc"),kind: ExportKind::Func(talloc)});
-    m.exports.push(Export{name: format!("tpit_free"),kind: ExportKind::Func(tfree)});
-    m.exports.push(Export{name: format!("tpit_table"),kind: ExportKind::Table(t)});
+    m.exports.push(Export {
+        name: format!("tpit_alloc"),
+        kind: ExportKind::Func(talloc),
+    });
+    m.exports.push(Export {
+        name: format!("tpit_free"),
+        kind: ExportKind::Func(tfree),
+    });
+    m.exports.push(Export {
+        name: format!("tpit_table"),
+        kind: ExportKind::Table(t),
+    });
     Ok(())
 }

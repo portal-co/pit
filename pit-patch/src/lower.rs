@@ -265,6 +265,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 initial: fs.len() as u64,
                 max: Some(fs.len() as u64), 
                 func_elements: Some(fs.clone()),
+                table64: false,
             });
             if let ImportKind::Func(f) = i.kind {
                 let fsi = m.funcs[f].sig();
