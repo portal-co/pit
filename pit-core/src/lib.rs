@@ -16,6 +16,14 @@ pub struct Attr {
     pub value: String,
 }
 
+pub fn merge(a: Vec<Attr>, b: Vec<Attr>) -> Vec<Attr>{
+    let mut m = BTreeMap::new();
+    for x in a.into_iter().chain(b){
+        m.insert(x.name, x.value);
+    }
+    return m.into_iter().map(|(a,b)|Attr{name: a,value: b}).collect();
+}
+
 pub fn parse_balanced(mut a: &str) -> IResult<&str, String> {
     let mut v = vec![];
     let mut i = 0;
@@ -244,3 +252,4 @@ impl Interface {
         return hex::encode(self.rid());
     }
 }
+pub mod info;

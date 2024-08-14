@@ -142,7 +142,7 @@ pub fn tfree(m: &mut Module, t: Table) -> anyhow::Result<Func> {
 
 // use waffle::{util::new_sig, Module};
 
-pub fn to_waffle_type(t: &pit_core::Arg) -> waffle::Type {
+pub fn to_waffle_type(t: &pit_core::Arg, tpit: bool) -> waffle::Type {
     match t {
         pit_core::Arg::I32 => waffle::Type::I32,
         pit_core::Arg::I64 => waffle::Type::I64,
@@ -153,24 +153,32 @@ pub fn to_waffle_type(t: &pit_core::Arg) -> waffle::Type {
             nullable,
             take,
             ann,
-        } => waffle::Type::ExternRef,
+        } => if tpit{
+            waffle::Type::I32
+        }else{
+            waffle::Type::ExternRef
+        },
     }
 }
-pub fn to_waffle_sig(m: &mut Module, t: &pit_core::Sig) -> waffle::Signature {
+pub fn to_waffle_sig(m: &mut Module, t: &pit_core::Sig, tpit: bool,) -> waffle::Signature {
     return new_sig(
         m,
         waffle::SignatureData {
-            params: t.params.iter().map(to_waffle_type).collect(),
-            returns: t.rets.iter().map(to_waffle_type).collect(),
+            params: t.params.iter().map(|a|to_waffle_type(a,tpit)).collect(),
+            returns: t.rets.iter().map(|a|to_waffle_type(a,tpit)).collect(),
         },
     );
 }
-pub fn waffle_funcs(m: &mut Module, i: &pit_core::Interface) -> BTreeMap<String, Func> {
+pub fn waffle_funcs(m: &mut Module, i: &pit_core::Interface, tpit: bool,) -> BTreeMap<String, Func> {
     return i
         .methods
         .iter()
         .map(|(a, b)| {
-            let module = format!("pit/{}", i.rid_str());
+            let module = format!("{}pit/{}", i.rid_str(), if tpit{
+                "t"
+            }else{
+                ""
+            });
             let name = a.clone();
             if let Some(f) = m.imports.iter().find_map(|i| {
                 if i.module == module && i.name == name {
@@ -184,7 +192,7 @@ pub fn waffle_funcs(m: &mut Module, i: &pit_core::Interface) -> BTreeMap<String,
             }) {
                 return (a.clone(), f);
             };
-            let s = to_waffle_sig(m, b);
+            let s = to_waffle_sig(m, b,tpit);
             let f = m
                 .funcs
                 .push(waffle::FuncDecl::Import(s, format!("{module}.{name}")));
@@ -432,10 +440,46 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
             }
         }
+        if let Some(a) = import.name.strip_suffix(".tpit-res").map(|a|a.to_owned()){
+            import.name = a;
+            if let ImportKind::Func(f) = &mut import.kind {
+                let p = m.signatures[m.funcs[*f].sig()].params.clone();
+                let p = new_sig(
+                    m,
+                    SignatureData {
+                        params: p,
+                        returns: vec![Type::I32],
+                    },
+                );
+                let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                let s = m.funcs[*f].sig();
+                let o = replace(f, p);
+                let mut b = FunctionBody::new(&m, s);
+                let e = b.entry;
+                let arg = b.blocks[b.entry].params.iter().map(|a|a.1).collect::<Vec<_>>();
+                let arg = add_op(
+                    &mut b,
+                    &arg,
+                    &[Type::ExternRef],
+                    Operator::Call {
+                        function_index: p,
+                    },
+                );
+                b.append_to_block(e, arg);
+                b.set_terminator(
+                    e,
+                    waffle::Terminator::ReturnCall {
+                        func: talloc,
+                        args: vec![arg],
+                    },
+                );
+                m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
+            }
+        }
         m.imports.push(import);
     }
     for i in is {
-        let f = waffle_funcs(m, &i);
+        let f = waffle_funcs(m, &i,false);
         for mut import in take(&mut m.imports) {
             if import.module == format!("tpit/{}", i.rid_str()) {
                 match import.name.strip_prefix("~") {
@@ -476,7 +520,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             .methods
                             .get(&import.name)
                             .context("in getting the method")?;
-                        let p = to_waffle_sig(m, x);
+                        let p = to_waffle_sig(m, x,false);
                         let p = m.signatures[p].clone();
                         let p = new_sig(
                             m,
@@ -558,7 +602,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                     }
                     Some((a, b)) => {
                         let x = i.methods.get(b).context("in getting the method")?;
-                        let p = to_waffle_sig(m, x);
+                        let p = to_waffle_sig(m, x,false);
                         let p = m.signatures[p].clone();
                         let p = new_sig(
                             m,
