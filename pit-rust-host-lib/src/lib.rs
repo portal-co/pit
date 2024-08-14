@@ -88,11 +88,8 @@ pub fn emit<U: AsRef<Instance> + 'static, E: WasmEngine>(
                         &mut *ctx,
                         FuncType::new(once(ValueType::I32), once(ValueType::ExternRef)),
                         move |mut ctx, args, rets| {
-                            let Value::I32(a) = &args[0] else {
-                                anyhow::bail!("invalid type");
-                            };
                             let i = ctx.data().as_ref().clone();
-                            let object = Wrapped::new(*a as u32, rid.clone(),t.to_owned(), i, ctx.as_context_mut());
+                            let object = Wrapped::new(args.to_owned(), rid.clone(),t.to_owned(), i, ctx.as_context_mut());
                             rets[0] = Value::ExternRef(Some(ExternRef::new(ctx, object)));
                             Ok(())
                         },
@@ -109,7 +106,7 @@ pub struct Wrapped<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> {
 }
 impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U,E> {
     pub fn new(
-        base: u32,
+        base: Vec<wasm_runtime_layer::Value>,
         rid: Arc<Interface>,
         rs: String,
         instance: ::wasm_runtime_layer::Instance,
@@ -123,13 +120,14 @@ impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U,E> {
         let instance2 = instance.clone();
         // let ctx2 = ctx.clone();
         let rs2 = rs.clone();
+        let base2 = base.clone();
         return Self {
             rid: rid.clone(),
             all: once(
                 Arc::new(move |mut ctx:StoreContextMut<'_,U,E>,vals: Vec<Value>| -> anyhow::Result<Vec<Value>> {
                     // let _ = &ctx2;
                     // let mut b = ctx2.base.lock().unwrap();
-                    let vals: Vec<_> = vec![Value::I32(base as i32)]
+                    let vals: Vec<_> = base.clone()
                         .into_iter()
                         .chain(vals.into_iter())
                         .collect();
@@ -150,10 +148,11 @@ impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U,E> {
                 let b = Arc::new(b.clone());
                 // let ctx = ctx.clone();
                 let rs = rs.clone();
+                let base = base2.clone();
                 (Arc::new(move |mut ctx:StoreContextMut<'_,U,E>,vals: Vec<Value>| -> anyhow::Result<Vec<Value>> {
                     // let _ = &ctx;
                     // let mut bi = ctx.base.lock().unwrap();
-                    let vals: Vec<_> = vec![Value::I32(base as i32)]
+                    let vals: Vec<_> = base.clone()
                         .into_iter()
                         .chain(vals.into_iter())
                         .collect();

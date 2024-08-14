@@ -480,19 +480,22 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
     }
     for i in is {
         let f = waffle_funcs(m, &i,false);
+        let mut ss = BTreeMap::new();
         for mut import in take(&mut m.imports) {
             if import.module == format!("tpit/{}", i.rid_str()) {
                 match import.name.strip_prefix("~") {
                     Some(a) => {
-                        let p = new_sig(
-                            m,
-                            SignatureData {
-                                params: vec![Type::I32],
-                                returns: vec![Type::ExternRef],
-                            },
-                        );
-                        let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
                         if let ImportKind::Func(f) = &mut import.kind {
+                            let p = m.signatures[m.funcs[*f].sig()].params.clone();
+                            ss.insert(a.to_owned(), p.clone());
+                            let p = new_sig(
+                                m,
+                                SignatureData {
+                                    params: p,
+                                    returns: vec![Type::ExternRef],
+                                },
+                            );
+                            let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
                             let s = m.funcs[*f].sig();
                             let o = replace(f, p);
                             let mut b = FunctionBody::new(&m, s);
@@ -607,8 +610,8 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                         let p = new_sig(
                             m,
                             SignatureData {
-                                params: vec![Type::I32]
-                                    .into_iter()
+                                params:ss.get(a).cloned()
+                                    .into_iter().flatten()
                                     .chain(p.params.into_iter())
                                     .collect(),
                                 returns: p.returns.into_iter().collect(),
