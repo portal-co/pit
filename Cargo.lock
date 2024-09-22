@@ -569,7 +569,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pit-basic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "externref",
  "ic-stable-structures",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "pit-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "pit-core",
@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "pit-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "derive_more",
  "hex",
@@ -598,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "pit-patch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "hex",
@@ -611,14 +611,14 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-externref"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "externref",
 ]
 
 [[package]]
 name = "pit-rust-generator"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "nom",
@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-guest"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "pit-core",
@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "pit-core",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host-lib"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "pit-core",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "pit-teavm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "pit-core",
@@ -1019,7 +1019,7 @@ dependencies = [
 
 [[package]]
 name = "tpit-rt"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "twox-hash"
