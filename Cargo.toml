@@ -1,7 +1,7 @@
 [workspace]
-members=[ "pit-basic","pit-core", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib", "tpit-rt"]
+members=[ "pit-basic", "pit-cli","pit-core", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib", "pit-teavm", "tpit-rt"]
 resolver="2"
 
 [workspace.dependencies]
-portal-pc-waffle = {git="https://github.com/portal-co/waffle-.git",branch="pr/changes2"}
-waffle-ast = {git="https://github.com/portal-co/more_waffle.git",branch="master"}
+portal-pc-waffle = "0.1.1+portal"
+waffle-ast = "0.2.1"

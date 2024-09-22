@@ -2,6 +2,8 @@
 name = "pit-rust-generator"
 version = "0.1.0"
 edition = "2021"
+license = "CC0-1.0"
+description = "Portal Interface Types"
 
 [dependencies]
 anyhow = "1.0.86"

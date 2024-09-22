@@ -90,92 +90,63 @@ const _: () = {
     unsafe impl Sync for TableCell {}
     static TABLE: ::std::sync::LazyLock<TableCell> = ::std::sync::LazyLock::new(|| TableCell::default());
     impl R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5
-    for ::externref::Resource<
+    for ::tpit_rt::Tpit<
         Box<dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5>,
     > {
         fn read8(&mut self, p0: u32) -> (u32) {
-            #[::externref::externref(crate = ":: externref")]
             #[link(
-                wasm_import_module = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
+                wasm_import_module = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
             )]
             extern "C" {
                 #[link_name = "read8"]
-                fn go(
-                    this: &mut ::externref::Resource<
-                        Box<
-                            dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5,
-                        >,
-                    >,
-                    p0: u32,
-                ) -> (u32);
+                fn go(this: u32, p0: u32) -> (u32);
             }
-            return unsafe { go(self, p0) };
+            return unsafe { go(self.ptr(), p0) };
         }
         fn size(&mut self) -> (u32) {
-            #[::externref::externref(crate = ":: externref")]
             #[link(
-                wasm_import_module = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
+                wasm_import_module = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
             )]
             extern "C" {
                 #[link_name = "size"]
-                fn go(
-                    this: &mut ::externref::Resource<
-                        Box<
-                            dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5,
-                        >,
-                    >,
-                ) -> (u32);
+                fn go(this: u32) -> (u32);
             }
-            return unsafe { go(self) };
+            return unsafe { go(self.ptr()) };
         }
         fn write8(&mut self, p0: u32, p1: u32) -> () {
-            #[::externref::externref(crate = ":: externref")]
             #[link(
-                wasm_import_module = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
+                wasm_import_module = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
             )]
             extern "C" {
                 #[link_name = "write8"]
-                fn go(
-                    this: &mut ::externref::Resource<
-                        Box<
-                            dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5,
-                        >,
-                    >,
-                    p0: u32,
-                    p1: u32,
-                ) -> ();
+                fn go(this: u32, p0: u32, p1: u32) -> ();
             }
-            return unsafe { go(self, p0, p1) };
+            return unsafe { go(self.ptr(), p0, p1) };
         }
     }
-    #[::externref::externref(crate = ":: externref")]
-    #[export_name = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e.drop"]
+    #[export_name = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e.drop"]
     extern "C" fn _drop(a: u32) {
         unsafe { (&mut *(TABLE.all.get())).remove(&a) };
     }
-    #[::externref::externref(crate = ":: externref")]
-    #[export_name = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/read8"]
+    #[export_name = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/read8"]
     extern "C" fn read8(id: u32, p0: u32) -> (u32) {
         return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().read8(p0);
     }
-    #[::externref::externref(crate = ":: externref")]
-    #[export_name = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/size"]
+    #[export_name = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/size"]
     extern "C" fn size(id: u32) -> (u32) {
         return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().size();
     }
-    #[::externref::externref(crate = ":: externref")]
-    #[export_name = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/write8"]
+    #[export_name = "tpit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5/~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e/write8"]
     extern "C" fn write8(id: u32, p0: u32, p1: u32) -> () {
         return unsafe { &mut *(TABLE.all.get()) }.get_mut(&id).unwrap().write8(p0, p1);
     }
     impl From<Box<dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5>>
-    for ::externref::Resource<
+    for ::tpit_rt::Tpit<
         Box<dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5>,
     > {
         fn from(
             a: Box<dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5>,
         ) -> Self {
-            #[::externref::externref(crate = ":: externref")]
             #[link(
                 wasm_import_module = "pit/867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5"
             )]
@@ -183,7 +154,7 @@ const _: () = {
                 #[link_name = "~8afbd04c549e07db517e034114e4b8ff8c76ce748f2e2d6e29fcaf48051eaf3e"]
                 fn _push(
                     a: u32,
-                ) -> ::externref::Resource<
+                ) -> ::tpit_rt::Tpit<
                     Box<
                         dyn R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5,
                     >,

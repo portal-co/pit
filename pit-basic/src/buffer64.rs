@@ -1,4 +1,6 @@
 pub mod ffi;
+use std::sync::Arc;
+
 pub use ffi::*;
 #[cfg(feature = "ic-stable-structures")]
 pub mod ic;
@@ -22,6 +24,25 @@ macro_rules! buffer_slice_impl {
 buffer_slice_impl!(Vec<u8>);
 buffer_slice_impl!(Box<[u8]>);
 buffer_slice_impl!(&'static mut [u8]);
+macro_rules! buffer_ro_slice_impl {
+    ($t:ty) => {
+        impl R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d for $t {
+            fn read8(&mut self, p0: u64) -> (u32) {
+                return self[p0 as usize].into();
+            }
+
+            fn write8(&mut self, p0: u64, p1: u32) -> () {
+                
+            }
+
+            fn size(&mut self) -> (u64) {
+                return self.len().try_into().unwrap();
+            }
+        }
+    };
+}
+buffer_ro_slice_impl!(Arc<[u8]>);
+buffer_ro_slice_impl!(&'static [u8]);
 pub fn slice<'a>(
     x: &'a mut dyn R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d,
 ) -> impl Iterator<Item = u8> + 'a {

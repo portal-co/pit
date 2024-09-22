@@ -16,12 +16,15 @@ pub struct Attr {
     pub value: String,
 }
 
-pub fn merge(a: Vec<Attr>, b: Vec<Attr>) -> Vec<Attr>{
+pub fn merge(a: Vec<Attr>, b: Vec<Attr>) -> Vec<Attr> {
     let mut m = BTreeMap::new();
-    for x in a.into_iter().chain(b){
+    for x in a.into_iter().chain(b) {
         m.insert(x.name, x.value);
     }
-    return m.into_iter().map(|(a,b)|Attr{name: a,value: b}).collect();
+    return m
+        .into_iter()
+        .map(|(a, b)| Attr { name: a, value: b })
+        .collect();
 }
 
 pub fn parse_balanced(mut a: &str) -> IResult<&str, String> {
@@ -253,3 +256,18 @@ impl Interface {
     }
 }
 pub mod info;
+pub fn retuple(a: Vec<Arg>) -> Interface {
+    Interface {
+        methods: a.into_iter().enumerate().map(|(a, b)| {
+            (
+                format!("v{a}"),
+                Sig {
+                    ann: vec![],
+                    params: vec![],
+                    rets: vec![b],
+                },
+            )
+        }).collect(),
+        ann: vec![],
+    }
+}

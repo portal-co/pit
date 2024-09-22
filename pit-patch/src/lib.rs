@@ -16,6 +16,7 @@ use waffle_ast::add_op;
 pub mod util;
 pub mod canon;
 pub mod lower;
+pub mod tpit;
 pub fn get_interfaces(m: &Module) -> anyhow::Result<Vec<Interface>> {
     let c = m
         .custom_sections

@@ -2,10 +2,13 @@
 name = "pit-basic"
 version = "0.1.0"
 edition = "2021"
+license = "CC0-1.0"
+description = "Portal Interface Types"
 
 [dependencies]
 externref = "0.2.0"
 ic-stable-structures = { version = "0.6.5", optional = true }
+tpit-rt = { version = "0.1.0", path = "../tpit-rt" }
 
 [features]
 host=[]

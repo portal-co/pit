@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()>{
             
         },
         salt: std::env::var("PIT_SALT").unwrap_or(format!("")).into_bytes(),
-        tpit: false,
+        tpit: true,
     };
 
     let v = pit_rust_guest::render(&x, &src);

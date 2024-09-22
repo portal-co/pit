@@ -1,13 +1,12 @@
 [package]
-name = "pit-rust-host-lib"
+name = "pit-cli"
 version = "0.1.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.86"
 pit-core = { version = "0.1.0", path = "../pit-core" }
-wasm_runtime_layer = "0.4.0"
+pit-patch = { version = "0.1.0", path = "../pit-patch" }
+portal-pc-waffle.workspace = true
