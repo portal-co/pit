@@ -3,5 +3,5 @@ members=[ "pit-basic", "pit-cli","pit-core", "pit-patch", "pit-rust-externref", 
 resolver="2"
 
 [workspace.dependencies]
-portal-pc-waffle = "0.1.1+portal"
-waffle-ast = "0.2.1"
+portal-pc-waffle = "0.2.15"
+waffle-ast = "0.3"

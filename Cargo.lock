@@ -110,9 +110,9 @@ checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
 
 [[package]]
 name = "arena-traits"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33fdeadfcf04c197a228febcc9550d95e28f3c8e20e045fca3a5bbb36582737e"
+checksum = "324e412f1771dc6c84a2a53e5c19cf92bd7ea05b5eeddb3f80c18e3473374ab4"
 
 [[package]]
 name = "atty"
@@ -169,6 +169,16 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "cfg-traits"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a3dfb49182ea18b9cc93b5d43cf340b519af6ca40b90fd5548c46471e19e9fb"
+dependencies = [
+ "arena-traits",
+ "either",
+]
 
 [[package]]
 name = "clap"
@@ -675,13 +685,14 @@ dependencies = [
 
 [[package]]
 name = "portal-pc-waffle"
-version = "0.1.1+portal"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b96b5d6a6b8a63b785db384d2f05f24d4c236de48541c7d4bd2935a21e20aa5"
+checksum = "5abedf68d0efbc60855c113f55236cb07d45b07f51845cbc82fad328bccc6b3c"
 dependencies = [
  "addr2line",
  "anyhow",
  "arena-traits",
+ "cfg-traits",
  "either",
  "env_logger",
  "fxhash",
@@ -922,12 +933,13 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "ssa-traits"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a15f32129ee532d9a415a25d2ba519acbc12214b22459b6edcd13b3d121ea6c"
+checksum = "36d84c7d6066cd100eb6c1d2c7790c9f67db0f41a7d36a4249379e06f11780f2"
 dependencies = [
  "anyhow",
  "arena-traits",
+ "cfg-traits",
  "either",
 ]
 
@@ -1075,9 +1087,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "waffle-ast"
-version = "0.2.1"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd7badee256e0dc022ed01bc402f7b14dd11cae326d0a28b3d48b621252e17ab"
+checksum = "2c2acd43d83cce938c8164c3274f4d02f88032a73db212af71d33e28cd8607b1"
 dependencies = [
  "anyhow",
  "bimap",
