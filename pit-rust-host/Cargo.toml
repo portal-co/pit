@@ -1,6 +1,6 @@
 [package]
 name = "pit-rust-host"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types"
@@ -9,8 +9,8 @@ description = "Portal Interface Types"
 
 [dependencies]
 hex = "0.4.3"
-pit-core = { version = "0.1.0", path = "../pit-core" }
-pit-rust-guest = { version = "0.1.0", path = "../pit-rust-guest" }
+pit-core = { version = "0.2.0", path = "../pit-core" }
+pit-rust-guest = { version = "0.2.0", path = "../pit-rust-guest" }
 proc-macro2 = "1.0.85"
 quasiquote = "0.1.1"
 quote = "1.0.36"
