@@ -629,7 +629,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pit-basic"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "externref",
  "ic-stable-structures",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "pit-c"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -647,7 +647,7 @@ dependencies = [
 
 [[package]]
 name = "pit-cli"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "pit-c",
@@ -664,7 +664,7 @@ dependencies = [
 
 [[package]]
 name = "pit-core"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "derive_more",
  "hex",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "pit-patch"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "hex",
@@ -687,14 +687,14 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-externref"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "externref",
 ]
 
 [[package]]
 name = "pit-rust-generator"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "nom",
@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-guest"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "hex",
  "pit-core",
@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "hex",
  "pit-core",
@@ -734,7 +734,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host-lib"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "pit-core",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "pit-teavm"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "pit-wit-bridge"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "nonempty",
@@ -1165,7 +1165,7 @@ dependencies = [
 
 [[package]]
 name = "tpit-rt"
-version = "0.2.4"
+version = "0.2.5"
 
 [[package]]
 name = "twox-hash"
