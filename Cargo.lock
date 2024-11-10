@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "pit-wit-bridge"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "nonempty",
