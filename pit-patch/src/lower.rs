@@ -1,4 +1,8 @@
-use std::{collections::BTreeSet, iter::once, mem::take};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    iter::once,
+    mem::take,
+};
 
 use anyhow::Context;
 use waffle::{
@@ -11,10 +15,72 @@ use waffle_ast::{
     Builder, Expr,
 };
 
-use crate::canon::canon;
+use crate::{canon::canon, util::talloc};
 pub fn patch_ty(t: &mut Type) {
     if let Type::ExternRef = t.clone() {
         *t = Type::I32
+    }
+}
+pub struct LowerTables {}
+impl Obfuscate for LowerTables {
+    fn obf(
+        &mut self,
+        o: Operator,
+        f: &mut waffle::FunctionBody,
+        b: waffle::Block,
+        args: &[waffle::Value],
+        types: &[Type],
+        module: &mut Module,
+    ) -> anyhow::Result<(waffle::Value, waffle::Block)> {
+        match o {
+            Operator::TableGet { table_index }
+            | Operator::TableSet { table_index }
+            | Operator::TableSize { table_index }
+            | Operator::TableGrow { table_index } => {
+                match module.tables[table_index].ty.clone() {
+                    Type::I32 | Type::I64 | Type::F32 | Type::F64 => {
+                        // let x = b.arg_pool[*_1].to_vec();
+                        let w = add_op(
+                            f,
+                            &[],
+                            &[Type::I32],
+                            Operator::I32Const {
+                                value: table_index.index() as u32,
+                            },
+                        );
+                        f.append_to_block(b, w);
+                        let id = format!(
+                            "pit-patch-rt/@{}/{}",
+                            module.tables[table_index].ty.to_string(),
+                            o.to_string().split_once("<").unwrap().0
+                        );
+                        let mut a = module.exports.iter();
+                        let a = loop {
+                            let Some(b) = a.next() else {
+                                anyhow::bail!("pit patch rt not found")
+                            };
+                            if b.name != id {
+                                continue;
+                            }
+                            let ExportKind::Func(a) = &b.kind else {
+                                continue;
+                            };
+                            break *a;
+                        };
+                        DontObf {}.obf(
+                            Operator::Call { function_index: a },
+                            f,
+                            b,
+                            &once(w).chain(args.iter().cloned()).collect::<Vec<_>>(),
+                            types,
+                            module,
+                        )
+                    }
+                    _ => DontObf {}.obf(o, f, b, args, types, module),
+                }
+            }
+            _ => DontObf {}.obf(o, f, b, args, types, module),
+        }
     }
 }
 pub fn import_fn(m: &mut Module, mo: String, n: String, s: SignatureData) -> Func {
@@ -38,6 +104,21 @@ pub fn import_fn(m: &mut Module, mo: String, n: String, s: SignatureData) -> Fun
 }
 pub struct Cfg {
     pub unexportable_i32_tables: bool,
+}
+pub fn canon_all(m: &mut Module, cfg: &Cfg, root: &str) -> anyhow::Result<()>{
+    let i = crate::get_interfaces(m)?;
+    let interfaces = i
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    for j in interfaces.iter() {
+        canon(m, &j.rid_str(), root)?;
+    }
+    if !cfg.unexportable_i32_tables {
+        obf_mod(m, &mut LowerTables {})?;
+    }
+    Ok(())
 }
 pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
     let root = "pit_patch_internal_instantiate";
@@ -87,78 +168,21 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
         }
         Ok::<_, anyhow::Error>(())
     })?;
-    struct X {}
-    impl Obfuscate for X {
-        fn obf(
-            &mut self,
-            o: Operator,
-            f: &mut waffle::FunctionBody,
-            b: waffle::Block,
-            args: &[waffle::Value],
-            types: &[Type],
-            module: &mut Module,
-        ) -> anyhow::Result<(waffle::Value, waffle::Block)> {
-            match o {
-                Operator::TableGet { table_index }
-                | Operator::TableSet { table_index }
-                | Operator::TableSize { table_index }
-                | Operator::TableGrow { table_index } => {
-                    if module.tables[table_index].ty == Type::ExternRef {
-                        // let x = b.arg_pool[*_1].to_vec();
-                        let w = add_op(
-                            f,
-                            &[],
-                            &[Type::I32],
-                            Operator::I32Const {
-                                value: table_index.index() as u32,
-                            },
-                        );
-                        f.append_to_block(b, w);
-                        let id =
-                            format!("pit-patch-rt/{}", o.to_string().split_once("<").unwrap().0);
-                        let mut a = module.exports.iter();
-                        let a = loop {
-                            let Some(b) = a.next() else {
-                                anyhow::bail!("pit patch rt not found")
-                            };
-                            if b.name != id {
-                                continue;
-                            }
-                            let ExportKind::Func(a) = &b.kind else {
-                                continue;
-                            };
-                            break *a;
-                        };
-                        DontObf {}.obf(
-                            Operator::Call { function_index: a },
-                            f,
-                            b,
-                            &once(w).chain(args.iter().cloned()).collect::<Vec<_>>(),
-                            types,
-                            module,
-                        )
-                    } else {
-                        DontObf {}.obf(o, f, b, args, types, module)
-                    }
-                }
-                _ => DontObf {}.obf(o, f, b, args, types, module),
-            }
+    // if cfg.unexportable_i32_tables {
+    for t in m.tables.values_mut() {
+        if t.ty == Type::ExternRef {
+            t.ty = Type::I32;
         }
     }
-    if cfg.unexportable_i32_tables {
-        for t in m.tables.values_mut() {
-            if t.ty == Type::ExternRef {
-                t.ty = Type::I32;
-            }
-        }
-    } else {
-        obf_mod(m, &mut X {})?;
-        for t in m.tables.values_mut() {
-            if t.ty == Type::ExternRef {
-                t.ty = Type::FuncRef;
-            }
-        }
-    }
+    // } else {
+    //     obf_mod(m, &mut X {})?;
+    //     for t in m.tables.values_mut() {
+    //         if t.ty == Type::ExternRef {
+    //             t.ty = Type::FuncRef;
+    //         }
+    //     }
+    // }
+
     for i in take(&mut m.imports) {
         if let Some(rid) = i.module.strip_prefix("pit/") {
             let ridx = interfaces
@@ -181,6 +205,8 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                     let k = b.entry;
                     let mut values: Vec<waffle::Value> =
                         b.blocks[k].params.iter().map(|a| a.1).collect();
+                    let tys = b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>();
+
                     let mut e = Expr::Bind(
                         Operator::I32Add,
                         vec![
@@ -195,7 +221,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                         ],
                     );
                     let (v, k) = e.build(m, &mut b, k)?;
-                    values[0] = v;
+                    values = vec![v];
                     b.set_terminator(k, waffle::Terminator::Return { values });
                     m.funcs[f] = FuncDecl::Body(fs, fname, b);
                     continue;
@@ -240,7 +266,8 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 }
             }
         }
-        if i.module == "pit" && i.name == "drop" {
+        if i.module == "pit" {
+            let n = &i.name;
             let fs = interfaces
                 .iter()
                 .filter_map(|i| {
@@ -249,7 +276,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                         let Some(x) = ex.next() else {
                             return None;
                         };
-                        if x.name != format!("pit/{}/{root}.drop", i.rid_str()) {
+                        if x.name != format!("pit/{}/{root}.{n}", i.rid_str()) {
                             continue;
                         };
                         let ExportKind::Func(ef) = &x.kind else {
@@ -263,7 +290,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
             let t = m.tables.push(TableData {
                 ty: Type::FuncRef,
                 initial: fs.len() as u64,
-                max: Some(fs.len() as u64), 
+                max: Some(fs.len() as u64),
                 func_elements: Some(fs.clone()),
                 table64: false,
             });
@@ -317,7 +344,22 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 continue;
             }
         }
+        if i.module == "system" && i.name == "stub" {
+            if let ImportKind::Func(f) = i.kind {
+                let fsi = m.funcs[f].sig();
+                let fname = m.funcs[f].name().to_owned();
+                let mut b = FunctionBody::new(&m, fsi);
+                let k = b.entry;
+                let s = b.add_op(k, Operator::I32Const { value: 1 }, &[], &[Type::I32]);
+                b.set_terminator(k, waffle::Terminator::Return { values: vec![s] });
+                m.funcs[f] = FuncDecl::Body(fsi, fname, b);
+                continue;
+            }
+        }
         m.imports.push(i);
+    }
+    if !cfg.unexportable_i32_tables {
+        obf_mod(m, &mut LowerTables {})?;
     }
     Ok(())
 }

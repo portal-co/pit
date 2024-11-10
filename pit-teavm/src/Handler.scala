@@ -1,4 +1,6 @@
 package pc.portal.pit.guest;
+import org.teavm.interop.{Import,Export};
+@Import(name="drop",module="tpit") @native def drop(handle: Int): Unit;
 
 trait Handler[T]{
     type Impl <: T;
@@ -26,4 +28,11 @@ object Handler{
             case Some(value) => h.finalize(value)
         };
     };
+    given int: Handler[Int] = new Handler[Int] {
+        type Impl = Int;
+        def createImpl(a: Int): Impl = a;
+        def handleOf(a: Impl): Int = a;
+        def fromHandle(a: Int): Impl = a;
+        def finalize(a: Int): Unit = drop(a);
+    }
 }
