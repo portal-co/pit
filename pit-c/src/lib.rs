@@ -160,7 +160,7 @@ pub fn cify(i: &Interface) -> String {
     #define R{rid}_EXTENDS (Droppable)
     {types}
     interface(R{rid});
-    implExtern(R{rid},handle_t);
+    declImplExtern(R{rid},handle_t);
     extern __externref_t R{rid}_ref(R{rid} rid);
     #define R{rid}_of(a) handle_new(R{rid}_ref(a))
     #endif
@@ -174,7 +174,7 @@ pub fn cify(i: &Interface) -> String {
         free(rid.self);
     }};
     {impls}
-    impl(R{rid},handle_t);
+    implExtern(R{rid},handle_t);
     #endif
     "#
     )
