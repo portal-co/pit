@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "pit-c"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -647,7 +647,7 @@ dependencies = [
 
 [[package]]
 name = "pit-cli"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "pit-c",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "pit-patch"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "hex",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "pit-teavm"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "pit-wit-bridge"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "nonempty",

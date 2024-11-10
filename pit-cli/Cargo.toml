@@ -1,13 +1,13 @@
 [package]
 name = "pit-cli"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types"
 
 [dependencies]
 anyhow = "1.0.86"
-pit-c = { version = "0.1.0", path = "../pit-c" }
+pit-c = { version = "0.2.1", path = "../pit-c" }
 pit-core = { version = "0.2.0", path = "../pit-core" }
 pit-patch = { version = "0.2.0", path = "../pit-patch" }
 pit-rust-guest = { version = "0.2.0", path = "../pit-rust-guest" }
