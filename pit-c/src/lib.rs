@@ -87,7 +87,7 @@ pub fn cify(i: &Interface) -> String {
                 b.params.iter().enumerate().map(|(idx,a)|{
                     let mut s = format!("v{idx}");
                     if let Arg::Resource { ty, nullable, take, ann } = a{
-                        s = format!("handle_borrow({s})");
+                        s = format!("handle_new({s})");
                         if !matches!(ty,ResTy::None){
                             let c = cty(i, a, &FFIKind::C {  });
                             s = format!("DYN(handle_t,{c},({{
@@ -107,7 +107,7 @@ pub fn cify(i: &Interface) -> String {
                             let c = cty(i, a, &FFIKind::C {  });
                             s = format!("{c}_ref({s})")
                         }
-                        s = format!("handle_new({s})")
+                        s = format!("handle_pop({s})")
                     }
                     return s;
                 }).join(","),
@@ -126,14 +126,18 @@ pub fn cify(i: &Interface) -> String {
                             let c = cty(i, a, &FFIKind::C {  });
                             s = format!("{c}_ref({s})")
                         }
-                        s = format!("handle_new({s})")
+                        s = format!("handle_{}({s})",if *take{
+                            "pop"
+                        }else{
+                            "borrow"
+                        })
                     }
                     return s;
                 }).join(","),
                 b.rets.iter().enumerate().map(|(idx,a)|{
                     let mut s = format!("res.v{idx}");
                     if let Arg::Resource { ty, nullable, take, ann } = a{
-                        s = format!("handle_borrow({s})");
+                        s = format!("handle_new({s})");
                         if !matches!(ty,ResTy::None){
                             let c = cty(i, a, &FFIKind::C {  });
                             s = format!("DYN(handle_t,{c},({{
