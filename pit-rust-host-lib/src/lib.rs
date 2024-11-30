@@ -40,6 +40,7 @@ pub fn emit_ty(a: &Arg) -> ValueType {
         Arg::F32 => ValueType::F32,
         Arg::F64 => ValueType::F64,
         Arg::Resource { ty, nullable, take, ann } => ValueType::ExternRef,
+        _ => todo!()
         // Arg::Func(f) => ValueType::FuncRef,
     }
 }

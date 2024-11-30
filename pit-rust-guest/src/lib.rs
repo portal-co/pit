@@ -241,6 +241,7 @@ pub fn render_ty(
                     ResTy::This => quasiquote! {
                         #root::externref::Resource<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
                     },
+                    _ => todo!()
                 };
                 let ty = if *nullable {
                     quote! {Option<#ty>}
@@ -264,6 +265,7 @@ pub fn render_ty(
                     ResTy::This => quasiquote! {
                         #root::tpit_rt::Tpit<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
                     },
+                    _ => todo!()
                 };
                 let mut ty = if *take {
                     ty
@@ -276,6 +278,7 @@ pub fn render_ty(
                 ty
             }
         }
+        _ => todo!()
         // Arg::Func(_) => todo!()
     }
 }

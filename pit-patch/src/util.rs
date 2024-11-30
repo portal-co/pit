@@ -38,7 +38,8 @@ pub fn to_waffle_type(t: &pit_core::Arg, tpit: bool) -> waffle::Type {
                     value: waffle::HeapType::ExternRef,
                 })
             }
-        }
+        },
+        _ => todo!()
     }
 }
 pub fn to_waffle_sig(m: &mut Module, t: &pit_core::Sig, tpit: bool) -> waffle::Signature {

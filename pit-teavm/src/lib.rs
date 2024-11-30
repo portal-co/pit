@@ -636,10 +636,12 @@ pub fn emit_ty<'a>(a: &Arg, rid: impl Into<Option<&'a str>>, ffi: &FFIStatus) ->
                         } else {
                             format!("Int")
                         }
-                    }
+                    },
+                    _ => todo!()
                 }
             }
         },
+        _ => todo!()
     }
 }
 pub fn emit_sig<'a>(

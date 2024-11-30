@@ -204,7 +204,9 @@ pub fn cty(i: &Interface, t: &Arg, ffi_kind: &FFIKind) -> String {
                 pit_core::ResTy::None => format!("handle_t"),
                 pit_core::ResTy::Of(a) => format!("R{}", hex::encode(a)),
                 pit_core::ResTy::This => format!("R{}", i.rid_str()),
+                _ => todo!()
             },
         },
+        _ => todo!()
     }
 }

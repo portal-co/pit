@@ -264,6 +264,7 @@ pub fn render_blit(root: &TokenStream, p: &Arg) -> TokenStream {
         Arg::Resource { .. } => quote! {
             #root::wasm_runtime_layer::ValueType::ExternRef
         },
+        _ => todo!()
     }
 }
 pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
@@ -314,6 +315,7 @@ pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
                 }
             }
         },
+        _ => todo!()
     }
 }
 pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStream {
@@ -368,7 +370,8 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
                 .to_tokens(&mut a)
             }
             a
-        }
+        },
+        _ => todo!()
     };
     quote! {
         {
@@ -427,6 +430,7 @@ pub fn render_new_val(root: &TokenStream, p: &Arg, t: TokenStream) -> TokenStrea
                     }})
                 }
             }
-        }
+        },
+        _ => todo!()
     }
 }

@@ -78,7 +78,7 @@ impl Display for Attr {
         write!(f, "[{}={}]", self.name, self.value)
     }
 }
-
+#[non_exhaustive]
 #[derive(Display, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ResTy {
     #[display(fmt = "")]
@@ -106,6 +106,7 @@ pub fn parse_resty(a: &str) -> IResult<&str, ResTy> {
         },
     ));
 }
+#[non_exhaustive]
 #[derive(Display, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Arg {
     I32,
