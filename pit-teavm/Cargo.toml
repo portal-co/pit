@@ -1,6 +1,6 @@
 [package]
 name = "pit-teavm"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types"
@@ -8,4 +8,4 @@ description = "Portal Interface Types"
 [dependencies]
 hex = "0.4.3"
 itertools = "0.13.0"
-pit-core = { version = "0.2.0", path = "../pit-core" }
+pit-core = { version = "0.3.0", path = "../pit-core" }

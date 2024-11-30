@@ -1,6 +1,6 @@
 [package]
 name = "pit-wit-bridge"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types WIT bridge"
@@ -8,8 +8,8 @@ description = "Portal Interface Types WIT bridge"
 [dependencies]
 anyhow = "1.0.93"
 nonempty = "0.10.0"
-pit-core = { version = "0.2.0", path = "../pit-core" }
-pit-patch = { version = "0.2.0", path = "../pit-patch" }
+pit-core = { version = "0.3.0", path = "../pit-core" }
+pit-patch = { version = "0.3.0", path = "../pit-patch" }
 portal-pc-waffle.workspace = true
 wasmtime-environ = { version = "18.0.1", features = ["component-model"] }
 wit-bindgen-core = "0.34.0"
