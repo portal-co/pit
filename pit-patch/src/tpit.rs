@@ -8,7 +8,7 @@ use anyhow::Context;
 use pit_core::{Arg, ResTy};
 use waffle::{
     util::new_sig, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody,
-    ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value,
+    ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
 };
 use waffle_ast::{add_op, results_ref_2};
 
@@ -37,7 +37,17 @@ pub fn shim(
         return Ok((v, k));
     };
     let end = f.add_block();
-    let ep = f.add_blockparam(end, if retref { Type::ExternRef } else { Type::I32 });
+    let ep = f.add_blockparam(
+        end,
+        if retref {
+            waffle::Type::Heap(WithNullable {
+                nullable: true,
+                value: waffle::HeapType::ExternRef,
+            })
+        } else {
+            Type::I32
+        },
+    );
     // if *nullable {
     let s = if retref {
         let a = add_op(f, &[], &[Type::I32], Operator::I32Const { value: 0 });
@@ -55,9 +65,15 @@ pub fn shim(
         let a = add_op(
             f,
             &[],
-            &[Type::ExternRef],
+            &[waffle::Type::Heap(WithNullable {
+                nullable: true,
+                value: waffle::HeapType::ExternRef,
+            })],
             Operator::RefNull {
-                ty: Type::ExternRef,
+                ty: waffle::Type::Heap(WithNullable {
+                    nullable: true,
+                    value: waffle::HeapType::ExternRef,
+                }),
             },
         );
         f.append_to_block(n, a);
@@ -113,7 +129,10 @@ pub fn shim(
             v = add_op(
                 f,
                 &[v],
-                &[Type::ExternRef],
+                &[waffle::Type::Heap(WithNullable {
+                    nullable: true,
+                    value: waffle::HeapType::ExternRef,
+                })],
                 Operator::Call {
                     function_index: tfree,
                 },
@@ -135,7 +154,10 @@ pub fn shim(
             v = add_op(
                 f,
                 &[v],
-                &[Type::ExternRef],
+                &[waffle::Type::Heap(WithNullable {
+                    nullable: true,
+                    value: waffle::HeapType::ExternRef,
+                })],
                 Operator::TableGet { table_index: table },
             );
             f.append_to_block(k, v);
@@ -161,7 +183,10 @@ pub fn shim(
 }
 pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
     let t = m.tables.push(TableData {
-        ty: Type::ExternRef,
+        ty: waffle::Type::Heap(WithNullable {
+            nullable: true,
+            value: waffle::HeapType::ExternRef,
+        }),
         initial: 0,
         max: None,
         func_elements: None,
@@ -181,7 +206,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[Type::ExternRef],
+                    &[waffle::Type::Heap(WithNullable {
+                        nullable: true,
+                        value: waffle::HeapType::ExternRef,
+                    })],
                     Operator::Call {
                         function_index: tfree,
                     },
@@ -202,7 +230,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[Type::ExternRef],
+                    &[waffle::Type::Heap(WithNullable {
+                        nullable: true,
+                        value: waffle::HeapType::ExternRef,
+                    })],
                     Operator::TableGet { table_index: t },
                 );
                 b.append_to_block(e, arg);
@@ -221,7 +252,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
             import.module = format!("pit");
             let p = new_sig(
                 m,
-                SignatureData {
+                SignatureData::Func {
                     params: vec![Type::I32],
                     returns: vec![],
                 },
@@ -236,7 +267,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[Type::ExternRef],
+                    &[waffle::Type::Heap(WithNullable {
+                        nullable: true,
+                        value: waffle::HeapType::ExternRef,
+                    })],
                     if import.name == "drop" {
                         Operator::Call {
                             function_index: tfree,
@@ -259,39 +293,46 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = import.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             import.name = a;
             if let ImportKind::Func(f) = &mut import.kind {
-                let p = m.signatures[m.funcs[*f].sig()].params.clone();
-                let p = new_sig(
-                    m,
-                    SignatureData {
-                        params: p,
-                        returns: vec![Type::I32],
-                    },
-                );
-                let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
-                let s = m.funcs[*f].sig();
-                let o = replace(f, p);
-                let mut b = FunctionBody::new(&m, s);
-                let e = b.entry;
-                let arg = b.blocks[b.entry]
-                    .params
-                    .iter()
-                    .map(|a| a.1)
-                    .collect::<Vec<_>>();
-                let arg = add_op(
-                    &mut b,
-                    &arg,
-                    &[Type::ExternRef],
-                    Operator::Call { function_index: p },
-                );
-                b.append_to_block(e, arg);
-                b.set_terminator(
-                    e,
-                    waffle::Terminator::ReturnCall {
-                        func: talloc,
-                        args: vec![arg],
-                    },
-                );
-                m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
+                if let SignatureData::Func { params, returns } =
+                    m.signatures[m.funcs[*f].sig()].clone()
+                {
+                    let p = params;
+                    let p = new_sig(
+                        m,
+                        SignatureData::Func {
+                            params: p,
+                            returns: vec![Type::I32],
+                        },
+                    );
+                    let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                    let s = m.funcs[*f].sig();
+                    let o = replace(f, p);
+                    let mut b = FunctionBody::new(&m, s);
+                    let e = b.entry;
+                    let arg = b.blocks[b.entry]
+                        .params
+                        .iter()
+                        .map(|a| a.1)
+                        .collect::<Vec<_>>();
+                    let arg = add_op(
+                        &mut b,
+                        &arg,
+                        &[waffle::Type::Heap(WithNullable {
+                            nullable: true,
+                            value: waffle::HeapType::ExternRef,
+                        })],
+                        Operator::Call { function_index: p },
+                    );
+                    b.append_to_block(e, arg);
+                    b.set_terminator(
+                        e,
+                        waffle::Terminator::ReturnCall {
+                            func: talloc,
+                            args: vec![arg],
+                        },
+                    );
+                    m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
+                }
             }
         }
         m.imports.push(import);
@@ -300,12 +341,17 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = export.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             export.name = a;
             if let ExportKind::Func(f) = &mut export.kind {
-                let p = m.signatures[m.funcs[*f].sig()].params.clone();
+                if let SignatureData::Func { params, returns } =
+                m.signatures[m.funcs[*f].sig()].clone(){
+                let p = params;
                 let p = new_sig(
                     m,
-                    SignatureData {
+                    SignatureData::Func {
                         params: p,
-                        returns: vec![Type::ExternRef],
+                        returns: vec![waffle::Type::Heap(WithNullable {
+                            nullable: true,
+                            value: waffle::HeapType::ExternRef,
+                        })],
                     },
                 );
                 let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
@@ -334,6 +380,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 );
                 m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
             }
+            }
         }
         m.exports.push(export);
     }
@@ -345,13 +392,18 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 match import.name.strip_prefix("~") {
                     Some(a) => {
                         if let ImportKind::Func(f) = &mut import.kind {
-                            let p = m.signatures[m.funcs[*f].sig()].params.clone();
+                            if let SignatureData::Func { params, returns } =
+                            m.signatures[m.funcs[*f].sig()].clone(){
+                            let p = params;
                             ss.insert(a.to_owned(), p.clone());
                             let p = new_sig(
                                 m,
-                                SignatureData {
+                                SignatureData::Func {
                                     params: p,
-                                    returns: vec![Type::ExternRef],
+                                    returns: vec![waffle::Type::Heap(WithNullable {
+                                        nullable: true,
+                                        value: waffle::HeapType::ExternRef,
+                                    })],
                                 },
                             );
                             let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
@@ -363,7 +415,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             let arg = add_op(
                                 &mut b,
                                 &[arg],
-                                &[Type::ExternRef],
+                                &[waffle::Type::Heap(WithNullable {
+                                    nullable: true,
+                                    value: waffle::HeapType::ExternRef,
+                                })],
                                 Operator::Call { function_index: p },
                             );
                             b.append_to_block(e, arg);
@@ -376,6 +431,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             );
                             m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
                         }
+                        }
                     }
                     None => {
                         let x = i
@@ -384,23 +440,37 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             .context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
+                        let SignatureData::Func { params, returns } = p else{
+                            continue;
+                        };
                         let p = new_sig(
                             m,
-                            SignatureData {
+                            SignatureData::Func {
                                 params: vec![Type::I32]
                                     .into_iter()
-                                    .chain(p.params.into_iter().map(|a| {
-                                        if a == Type::ExternRef {
+                                    .chain(params.into_iter().map(|a| {
+                                        if a == waffle::Type::Heap(WithNullable {
+                                            nullable: true,
+                                            value: waffle::HeapType::ExternRef,
+                                        }) {
                                             Type::I32
                                         } else {
                                             a
                                         }
                                     }))
                                     .collect(),
-                                returns: p
-                                    .returns
+                                returns: returns
                                     .into_iter()
-                                    .map(|a| if a == Type::ExternRef { Type::I32 } else { a })
+                                    .map(|a| {
+                                        if a == waffle::Type::Heap(WithNullable {
+                                            nullable: true,
+                                            value: waffle::HeapType::ExternRef,
+                                        }) {
+                                            Type::I32
+                                        } else {
+                                            a
+                                        }
+                                    })
                                     .collect(),
                             },
                         );
@@ -431,10 +501,11 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(false, &mut b, k, &r, v, talloc, tfree, t)?;
                                 v2.push(a);
                             }
+                            let rets = b.rets.clone();
                             let rets = add_op(
                                 &mut b,
                                 &v2,
-                                &m.signatures[m.funcs[p].sig()].returns,
+                                &rets,
                                 Operator::Call { function_index: p },
                             );
                             b.append_to_block(k, rets);
@@ -467,17 +538,20 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             export.name = format!("pit/{}/~{a}", i.rid_str());
                             let p = to_waffle_sig(m, &x, false);
                             let p = m.signatures[p].clone();
+                            let SignatureData::Func { params, returns } = p else{
+                                continue;
+                            };
                             let p = new_sig(
                                 m,
-                                SignatureData {
+                                SignatureData::Func {
                                     params: ss
                                         .get(a)
                                         .cloned()
                                         .into_iter()
                                         .flatten()
-                                        .chain(p.params.into_iter())
+                                        .chain(params.into_iter())
                                         .collect(),
-                                    returns: p.returns.into_iter().collect(),
+                                    returns: returns.iter().cloned().collect(),
                                 },
                             );
                             // let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
@@ -502,7 +576,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 let rets = add_op(
                                     &mut b,
                                     &v2,
-                                    &m.signatures[m.funcs[p].sig()].returns,
+                                    &returns,
                                     Operator::Call { function_index: p },
                                 );
                                 b.append_to_block(k, rets);
@@ -523,17 +597,20 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                         let x = i.methods.get(b).context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
+                        let SignatureData::Func { params, returns } = p else{
+                            continue;
+                        };
                         let p = new_sig(
                             m,
-                            SignatureData {
+                            SignatureData::Func {
                                 params: ss
                                     .get(a)
                                     .cloned()
                                     .into_iter()
                                     .flatten()
-                                    .chain(p.params.into_iter())
+                                    .chain(params.into_iter())
                                     .collect(),
-                                returns: p.returns.into_iter().collect(),
+                                returns: returns.iter().cloned().collect(),
                             },
                         );
                         // let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
@@ -558,7 +635,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             let rets = add_op(
                                 &mut b,
                                 &v2,
-                                &m.signatures[m.funcs[p].sig()].returns,
+                                &returns,
                                 Operator::Call { function_index: p },
                             );
                             b.append_to_block(k, rets);

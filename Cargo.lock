@@ -126,6 +126,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
 name = "bimap"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -184,6 +190,16 @@ name = "cfg-traits"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a3dfb49182ea18b9cc93b5d43cf340b519af6ca40b90fd5548c46471e19e9fb"
+dependencies = [
+ "arena-traits",
+ "either",
+]
+
+[[package]]
+name = "cfg-traits"
+version = "0.3.0-alpha.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d599ee7a04d8b5e63138bf0740dfe0f77cc7615f9dfb96fd569c3f0cedc3d6a6"
 dependencies = [
  "arena-traits",
  "either",
@@ -345,6 +361,35 @@ name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
+
+[[package]]
+name = "ext-trait"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d772df1c1a777963712fb68e014235e80863d6a91a85c4e06ba2d16243a310e5"
+dependencies = [
+ "ext-trait-proc_macros",
+]
+
+[[package]]
+name = "ext-trait-proc_macros"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ab7934152eaf26aa5aa9f7371408ad5af4c31357073c9e84c3b9d7f11ad639a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "extension-traits"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a296e5a895621edf9fa8329c83aa1cb69a964643e36cf54d8d7a69b789089537"
+dependencies = [
+ "ext-trait",
+]
 
 [[package]]
 name = "externref"
@@ -544,6 +589,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
+name = "lending-iterator"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc07588c853b50689205fb5c00498aa681d89828e0ce8cbd965ebc7a5d8ae260"
+dependencies = [
+ "extension-traits",
+ "lending-iterator-proc_macros",
+ "macro_rules_attribute",
+ "never-say-never",
+ "nougat",
+ "polonius-the-crab",
+]
+
+[[package]]
+name = "lending-iterator-proc_macros"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5445dd1c0deb1e97b8a16561d17fc686ca83e8411128fb036e9668a72d51b1d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -554,6 +624,22 @@ name = "log"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+
+[[package]]
+name = "macro_rules_attribute"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf0c9b980bf4f3a37fd7b1c066941dd1b1d0152ce6ee6e8fe8c49b9f6810d862"
+dependencies = [
+ "macro_rules_attribute-proc_macro",
+ "paste",
+]
+
+[[package]]
+name = "macro_rules_attribute-proc_macro"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58093314a45e00c77d5c508f76e77c3396afbbc0d01506e7fae47b018bac2b1d"
 
 [[package]]
 name = "memchr"
@@ -586,6 +672,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "never-say-never"
+version = "6.6.666"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf5a574dadd7941adeaa71823ecba5e28331b8313fb2e1c6a5c7e5981ea53ad6"
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -600,6 +692,27 @@ name = "nonempty"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "303e8749c804ccd6ca3b428de7fe0d86cb86bc7606bc15291f100fd487960bb8"
+
+[[package]]
+name = "nougat"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97b57b9ced431322f054fc673f1d3c7fa52d80efd9df74ad2fc759f044742510"
+dependencies = [
+ "macro_rules_attribute",
+ "nougat-proc_macros",
+]
+
+[[package]]
+name = "nougat-proc_macros"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c84f77a45e99a2f9b492695d99e1c23844619caa5f3e57647cffacad773ca257"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "object"
@@ -650,6 +763,7 @@ name = "pit-cli"
 version = "0.2.5"
 dependencies = [
  "anyhow",
+ "base64",
  "pit-c",
  "pit-core",
  "pit-patch",
@@ -765,27 +879,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "portal-pc-waffle"
-version = "0.2.15"
+name = "polonius-the-crab"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5abedf68d0efbc60855c113f55236cb07d45b07f51845cbc82fad328bccc6b3c"
+checksum = "c2a69ee997a6282f8462abf1e0d8c38c965e968799e912b3bed8c9e8a28c2f9f"
+
+[[package]]
+name = "portal-pc-waffle"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2515e60cd2d28a3083b4ecc351aa338e0eed3c5700d798b8edf9936516a14781"
 dependencies = [
  "addr2line",
  "anyhow",
  "arena-traits",
- "cfg-traits",
+ "cfg-traits 0.2.0",
+ "cfg-traits 0.3.0-alpha.0",
  "either",
  "env_logger",
  "fxhash",
  "indexmap",
  "lazy_static",
+ "lending-iterator",
  "libc",
  "log",
  "paste",
  "rayon",
  "serde",
  "smallvec",
- "ssa-traits",
+ "ssa-traits 0.2.0",
+ "ssa-traits 0.3.0-alpha.0",
  "stacker",
  "structopt",
  "wasm-encoder 0.212.0",
@@ -1047,8 +1170,21 @@ checksum = "36d84c7d6066cd100eb6c1d2c7790c9f67db0f41a7d36a4249379e06f11780f2"
 dependencies = [
  "anyhow",
  "arena-traits",
- "cfg-traits",
+ "cfg-traits 0.2.0",
  "either",
+]
+
+[[package]]
+name = "ssa-traits"
+version = "0.3.0-alpha.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "361fc58338790e74a8b5d46fa85605eb9d22933ffabece833c46f604e29803c3"
+dependencies = [
+ "anyhow",
+ "arena-traits",
+ "cfg-traits 0.3.0-alpha.0",
+ "either",
+ "lending-iterator",
 ]
 
 [[package]]
@@ -1227,9 +1363,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "waffle-ast"
-version = "0.3.5"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c2acd43d83cce938c8164c3274f4d02f88032a73db212af71d33e28cd8607b1"
+checksum = "e6314d8bc49885e4ad317b19a99b7048f0321ea0305b251797b4fcfd5100f437"
 dependencies = [
  "anyhow",
  "bimap",

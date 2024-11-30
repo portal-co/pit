@@ -5,7 +5,7 @@ use pit_core::Interface;
 use sha3::{Digest, Sha3_256};
 use waffle::{
     entity::EntityRef, util::new_sig, BlockTarget, Export, ExportKind, Func, FuncDecl,
-    FunctionBody, Import, ImportKind, Module, Operator, SignatureData, TableData, Type,
+    FunctionBody, Import, ImportKind, Module, Operator, SignatureData, TableData, Type, WithNullable,
 };
 use waffle_ast::{results_ref_2, Builder, Expr};
 
@@ -23,9 +23,9 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
     xs.sort();
     let s = new_sig(
         m,
-        SignatureData {
+        SignatureData::Func {
             params: vec![Type::I32],
-            returns: vec![Type::ExternRef],
+            returns: vec![Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef})],
         },
     );
     let f2 = m
@@ -33,7 +33,7 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
         .push(waffle::FuncDecl::Import(s, format!("pit/{rid}.~{target}")));
     let mut tcache: BTreeMap<Vec<Type>, _> = BTreeMap::new();
     let tx = m.tables.push(TableData {
-        ty: Type::ExternRef,
+        ty: Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef}),
         initial: 0,
         max: None,
         func_elements: None,
@@ -71,9 +71,9 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
     let is = take(&mut m.imports);
     let stub = new_sig(
         m,
-        SignatureData {
+        SignatureData::Func {
             params: vec![],
-            returns: vec![Type::ExternRef],
+            returns: vec![Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef})],
         },
     );
     let stub = m.funcs.push(FuncDecl::Import(stub, format!("stub")));
@@ -183,9 +183,11 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
             .collect::<Vec<_>>();
         let sig = m.funcs[sig].sig();
         let mut sig = m.signatures[sig].clone();
-        sig.params = once(Type::I32)
-            .chain(sig.params[a.1.len()..].iter().cloned())
+        if let SignatureData::Func { params, returns } = &mut sig{
+        *params = once(Type::I32)
+            .chain(params[a.1.len()..].iter().cloned())
             .collect();
+        }
         let sig = new_sig(m, sig);
         let mut b = FunctionBody::new(&m, sig);
         let k = b.entry;
@@ -235,14 +237,10 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                             Type::F32 => b.add_op(k, Operator::F32Const { value: 0 }, &[], &[t]),
                             Type::F64 => b.add_op(k, Operator::F64Const { value: 0 }, &[], &[t]),
                             Type::V128 => todo!(),
-                            Type::FuncRef => todo!(),
-                            Type::ExternRef => {
+                            Type::Heap(_) => {
                                 b.add_op(k, Operator::RefNull { ty: t.clone() }, &[], &[t])
-                            }
-                            Type::TypedFuncRef {
-                                nullable,
-                                sig_index,
-                            } => todo!(),
+                            },
+                            _ => todo!()
                         })
                         .collect();
                     b.set_terminator(k, waffle::Terminator::Return { values: rets });

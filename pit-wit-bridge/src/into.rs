@@ -6,7 +6,7 @@ use std::{
 use nonempty::NonEmpty;
 use pit_core::{Arg, Interface, Sig};
 use waffle::{
-    util::new_sig, Block, ExportKind, Func, FuncDecl, FunctionBody, Memory, Module, Operator, Signature, SignatureData, Type, Value
+    util::new_sig, Block, ExportKind, Func, FuncDecl, FunctionBody, Memory, Module, Operator, Signature, SignatureData, Type, Value, WithNullable
 };
 use wit_bindgen_core::{
     abi::{Bindgen, Bitcast, WasmType},
@@ -221,8 +221,8 @@ impl<'a, 'b, 'c> State<'a, 'b, 'c> {
     fn pop_block(&mut self) -> Func {
         let sig = new_sig(
             self.module,
-            SignatureData {
-                params: vec![Type::ExternRef],
+            SignatureData::Func {
+                params: vec![Type::Heap(WithNullable { value: waffle::HeapType::ExternRef, nullable: true })],
                 returns: self.func.rets.clone(),
             },
         );
@@ -598,7 +598,10 @@ impl<'a, 'b, 'c> Bindgen for State<'a, 'b, 'c> {
                 let val = operands.pop().unwrap();
                 results.extend(funcs.into_iter().map(|f| {
                     let tys = self.module.funcs[f].sig();
-                    let tys = &self.module.signatures[tys].returns;
+                    let SignatureData::Func { params, returns } = &self.module.signatures[tys] else{
+                        todo!()
+                    };
+                    let tys = &*returns;
                     let v = self
                         .func
                         .add_op(k, Operator::Call { function_index: f }, &[val], tys);
@@ -612,7 +615,7 @@ impl<'a, 'b, 'c> Bindgen for State<'a, 'b, 'c> {
                     k,
                     Operator::Call { function_index: c },
                     &operands,
-                    &[Type::ExternRef],
+                    &[Type::Heap(WithNullable{nullable: true, value: waffle::HeapType::ExternRef})],
                 ));
             }
             wit_bindgen_core::abi::Instruction::FlagsLower { flags, name, ty } => todo!(),
@@ -669,8 +672,8 @@ impl<'a, 'b, 'c> Bindgen for State<'a, 'b, 'c> {
     fn push_block(&mut self) {
         let sig = new_sig(
             self.module,
-            SignatureData {
-                params: vec![Type::ExternRef],
+            SignatureData::Func {
+                params: vec![Type::Heap(WithNullable{nullable: true, value: waffle::HeapType::ExternRef})],
                 returns: vec![],
             },
         );

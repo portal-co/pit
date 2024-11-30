@@ -121,6 +121,7 @@ pub fn pitify(component: &[u8], module: &mut Module) -> anyhow::Result<()> {
                                     format!("g{}", global.index()),
                                 waffle::ExportKind::Memory(memory) =>
                                     format!("m{}", memory.index()),
+                                    waffle::ExportKind::ControlTag(_) => todo!()
                             }
                         );
                         copier.dest.exports.push(x);

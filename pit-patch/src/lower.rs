@@ -6,8 +6,7 @@ use std::{
 
 use anyhow::Context;
 use waffle::{
-    entity::EntityRef, util::new_sig, ExportKind, Func, FuncDecl, FunctionBody, Import, ImportKind,
-    Module, Operator, SignatureData, TableData, Type, ValueDef,
+    entity::EntityRef, util::new_sig, ExportKind, Func, FuncDecl, FunctionBody, HeapType, Import, ImportKind, Module, Operator, SignatureData, StorageType, TableData, Type, ValueDef, WithNullable
 };
 use waffle_ast::{
     add_op,
@@ -17,7 +16,7 @@ use waffle_ast::{
 
 use crate::{canon::canon, util::talloc};
 pub fn patch_ty(t: &mut Type) {
-    if let Type::ExternRef = t.clone() {
+    if let Type::Heap(WithNullable { value: HeapType::ExternRef, nullable }) = t.clone() {
         *t = Type::I32
     }
 }
@@ -132,8 +131,28 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
         canon(m, &j.rid_str(), root)?;
     }
     for s in m.signatures.values_mut() {
-        for p in s.params.iter_mut().chain(s.returns.iter_mut()) {
-            patch_ty(p)
+        match s{
+            SignatureData::Func { params, returns } => {
+                for p in params.iter_mut().chain(returns.iter_mut()) {
+                    patch_ty(p)
+                }
+            },
+            SignatureData::Struct { fields } => {
+                for f in fields.iter_mut(){
+                    if let StorageType::Val(v) = &mut f.value{
+                        patch_ty(v);
+                    }
+                }
+            },
+            SignatureData::Array { ty } =>{
+                if let StorageType::Val(v) = &mut ty.value{
+                    patch_ty(v);
+                }
+            },
+            SignatureData::None => {
+
+            },
+            _ => todo!(),
         }
     }
     m.try_take_per_func_body(|m, b| {
@@ -150,12 +169,12 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
             if let ValueDef::Operator(o, _1, tys) = &mut b.values[v] {
                 match o.clone() {
                     Operator::RefNull { ty } => {
-                        if ty == Type::ExternRef {
+                        if matches!(ty,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
                             *o = Operator::I32Const { value: 0 }
                         }
                     }
                     Operator::RefIsNull => {
-                        if b.type_pool[*tys][0] == Type::ExternRef {
+                        if matches!(b.type_pool[*tys][0] ,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
                             *o = Operator::I32Eqz
                         }
                     }
@@ -170,7 +189,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
     })?;
     // if cfg.unexportable_i32_tables {
     for t in m.tables.values_mut() {
-        if t.ty == Type::ExternRef {
+        if matches!(t.ty,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
             t.ty = Type::I32;
         }
     }
@@ -288,7 +307,10 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 })
                 .collect::<Vec<_>>();
             let t = m.tables.push(TableData {
-                ty: Type::FuncRef,
+                ty: Type::Heap(WithNullable{
+                    nullable: true,
+                    value: waffle::HeapType::FuncRef
+                }),
                 initial: fs.len() as u64,
                 max: Some(fs.len() as u64),
                 func_elements: Some(fs.clone()),
