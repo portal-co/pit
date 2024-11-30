@@ -42,22 +42,28 @@ pub fn to_waffle_type(t: &pit_core::Arg, tpit: bool) -> waffle::Type {
         _ => todo!()
     }
 }
+pub fn to_waffle_type_in(t: &pit_core::Arg, tpit: bool, module: &mut Module) -> waffle::Type {
+    match t{
+        t => to_waffle_type(t, tpit)
+    }
+}
 pub fn to_waffle_sig(m: &mut Module, t: &pit_core::Sig, tpit: bool) -> waffle::Signature {
+    let s = waffle::SignatureData::Func {
+        params: once(if tpit {
+            Type::I32
+        } else {
+            waffle::Type::Heap(WithNullable {
+                nullable: true,
+                value: waffle::HeapType::ExternRef,
+            })
+        })
+        .chain(t.params.iter().map(|a| to_waffle_type_in(a, tpit,m)))
+        .collect(),
+        returns: t.rets.iter().map(|a| to_waffle_type_in(a, tpit,m)).collect(),
+    };
     return new_sig(
         m,
-        waffle::SignatureData::Func {
-            params: once(if tpit {
-                Type::I32
-            } else {
-                waffle::Type::Heap(WithNullable {
-                    nullable: true,
-                    value: waffle::HeapType::ExternRef,
-                })
-            })
-            .chain(t.params.iter().map(|a| to_waffle_type(a, tpit)))
-            .collect(),
-            returns: t.rets.iter().map(|a| to_waffle_type(a, tpit)).collect(),
-        },
+        s,
     );
 }
 pub fn waffle_funcs(m: &mut Module, i: &pit_core::Interface, tpit: bool) -> BTreeMap<String, Func> {
@@ -116,12 +122,13 @@ pub fn canon(m: &mut Module, i: &pit_core::Interface, destruct: Option<Func>, na
     });
     let mut j = 0;
     for (s, meth) in i.methods.iter() {
+        let sig =SignatureData::Func {
+            params: tys.iter().map(|a| to_waffle_type_in(a, false,m)).collect(),
+            returns: meth.rets.iter().map(|a| to_waffle_type_in(a, false,m)).collect(),
+        };
         let sig = new_sig(
             m,
-            SignatureData::Func {
-                params: tys.iter().map(|a| to_waffle_type(a, false)).collect(),
-                returns: meth.rets.iter().map(|a| to_waffle_type(a, false)).collect(),
-            },
+            sig,
         );
         let mut f = FunctionBody::new(&m, sig);
         let args = f.blocks[f.entry]
@@ -166,12 +173,13 @@ pub fn canon(m: &mut Module, i: &pit_core::Interface, destruct: Option<Func>, na
             name: format!("drop"),
             kind: ImportKind::Func(dropper),
         });
+        let sig = SignatureData::Func {
+            params: tys.iter().map(|a| to_waffle_type_in(a, false,m)).collect(),
+            returns: vec![],
+        };
         let sig = new_sig(
             m,
-            SignatureData::Func {
-                params: tys.iter().map(|a| to_waffle_type(a, false)).collect(),
-                returns: vec![],
-            },
+            sig,
         );
         let f = match destruct {
             None => {
