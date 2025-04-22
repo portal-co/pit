@@ -1,18 +1,23 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet}};use core::{
+use alloc::borrow::ToOwned;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::{
     iter::once,
     mem::{replace, take},
 };
-use alloc::vec;
-use alloc::vec::Vec;
-use alloc::format;
 
 use anyhow::Context;
 use pit_core::{Arg, ResTy};
 use portal_pc_waffle::{
-    util::*, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody,
-    ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
+    util::*, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody, ImportKind,
+    Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
 };
+
+use crate::get_interfaces;
+use crate::tutils::{talloc, tfree};
+use crate::util::{add_op, to_waffle_sig, waffle_funcs};
 
 // use waffle_ast::{add_op, results_ref_2};
 
@@ -259,9 +264,12 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 SignatureData::Func {
                     params: vec![Type::I32],
                     returns: vec![],
+                    shared: true,
                 },
             );
-            let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
+            let p = m
+                .funcs
+                .push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
             if let ImportKind::Func(f) = &mut import.kind {
                 let s = m.funcs[*f].sig();
                 let o = replace(f, p);
@@ -297,7 +305,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = import.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             import.name = a;
             if let ImportKind::Func(f) = &mut import.kind {
-                if let SignatureData::Func { params, returns } =
+                if let SignatureData::Func { params, returns,.. } =
                     m.signatures[m.funcs[*f].sig()].clone()
                 {
                     let p = params;
@@ -306,9 +314,12 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                         SignatureData::Func {
                             params: p,
                             returns: vec![Type::I32],
+                            shared: true,
                         },
                     );
-                    let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
+                    let p = m
+                        .funcs
+                        .push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                     let s = m.funcs[*f].sig();
                     let o = replace(f, p);
                     let mut b = FunctionBody::new(&m, s);
@@ -345,45 +356,49 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = export.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             export.name = a;
             if let ExportKind::Func(f) = &mut export.kind {
-                if let SignatureData::Func { params, returns } =
-                m.signatures[m.funcs[*f].sig()].clone(){
-                let p = params;
-                let p = new_sig(
-                    m,
-                    SignatureData::Func {
-                        params: p,
-                        returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
-                            nullable: true,
-                            value: portal_pc_waffle::HeapType::ExternRef,
-                        })],
-                    },
-                );
-                let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
-                let s = m.funcs[*f].sig();
-                let o = replace(f, p);
-                let mut b = FunctionBody::new(&m, s);
-                let e = b.entry;
-                let arg = b.blocks[b.entry]
-                    .params
-                    .iter()
-                    .map(|a| a.1)
-                    .collect::<Vec<_>>();
-                let arg = add_op(
-                    &mut b,
-                    &arg,
-                    &[Type::I32],
-                    Operator::Call { function_index: p },
-                );
-                b.append_to_block(e, arg);
-                b.set_terminator(
-                    e,
-                    portal_pc_waffle::Terminator::ReturnCall {
-                        func: tfree,
-                        args: vec![arg],
-                    },
-                );
-                m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
-            }
+                if let SignatureData::Func { params, returns,.. } =
+                    m.signatures[m.funcs[*f].sig()].clone()
+                {
+                    let p = params;
+                    let p = new_sig(
+                        m,
+                        SignatureData::Func {
+                            params: p,
+                            returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
+                                nullable: true,
+                                value: portal_pc_waffle::HeapType::ExternRef,
+                            })],
+                            shared: true,
+                        },
+                    );
+                    let p = m
+                        .funcs
+                        .push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
+                    let s = m.funcs[*f].sig();
+                    let o = replace(f, p);
+                    let mut b = FunctionBody::new(&m, s);
+                    let e = b.entry;
+                    let arg = b.blocks[b.entry]
+                        .params
+                        .iter()
+                        .map(|a| a.1)
+                        .collect::<Vec<_>>();
+                    let arg = add_op(
+                        &mut b,
+                        &arg,
+                        &[Type::I32],
+                        Operator::Call { function_index: p },
+                    );
+                    b.append_to_block(e, arg);
+                    b.set_terminator(
+                        e,
+                        portal_pc_waffle::Terminator::ReturnCall {
+                            func: tfree,
+                            args: vec![arg],
+                        },
+                    );
+                    m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
+                }
             }
         }
         m.exports.push(export);
@@ -396,45 +411,49 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 match import.name.strip_prefix("~") {
                     Some(a) => {
                         if let ImportKind::Func(f) = &mut import.kind {
-                            if let SignatureData::Func { params, returns } =
-                            m.signatures[m.funcs[*f].sig()].clone(){
-                            let p = params;
-                            ss.insert(a.to_owned(), p.clone());
-                            let p = new_sig(
-                                m,
-                                SignatureData::Func {
-                                    params: p,
-                                    returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
+                            if let SignatureData::Func { params, returns,.. } =
+                                m.signatures[m.funcs[*f].sig()].clone()
+                            {
+                                let p = params;
+                                ss.insert(a.to_owned(), p.clone());
+                                let p = new_sig(
+                                    m,
+                                    SignatureData::Func {
+                                        params: p,
+                                        returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
+                                            nullable: true,
+                                            value: portal_pc_waffle::HeapType::ExternRef,
+                                        })],
+                                        shared: true,
+                                    },
+                                );
+                                let p = m
+                                    .funcs
+                                    .push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
+                                let s = m.funcs[*f].sig();
+                                let o = replace(f, p);
+                                let mut b = FunctionBody::new(&m, s);
+                                let e = b.entry;
+                                let arg = b.blocks[b.entry].params[0].1;
+                                let arg = add_op(
+                                    &mut b,
+                                    &[arg],
+                                    &[portal_pc_waffle::Type::Heap(WithNullable {
                                         nullable: true,
                                         value: portal_pc_waffle::HeapType::ExternRef,
                                     })],
-                                },
-                            );
-                            let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
-                            let s = m.funcs[*f].sig();
-                            let o = replace(f, p);
-                            let mut b = FunctionBody::new(&m, s);
-                            let e = b.entry;
-                            let arg = b.blocks[b.entry].params[0].1;
-                            let arg = add_op(
-                                &mut b,
-                                &[arg],
-                                &[portal_pc_waffle::Type::Heap(WithNullable {
-                                    nullable: true,
-                                    value: portal_pc_waffle::HeapType::ExternRef,
-                                })],
-                                Operator::Call { function_index: p },
-                            );
-                            b.append_to_block(e, arg);
-                            b.set_terminator(
-                                e,
-                                portal_pc_waffle::Terminator::ReturnCall {
-                                    func: talloc,
-                                    args: vec![arg],
-                                },
-                            );
-                            m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
-                        }
+                                    Operator::Call { function_index: p },
+                                );
+                                b.append_to_block(e, arg);
+                                b.set_terminator(
+                                    e,
+                                    portal_pc_waffle::Terminator::ReturnCall {
+                                        func: talloc,
+                                        args: vec![arg],
+                                    },
+                                );
+                                m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
+                            }
                         }
                     }
                     None => {
@@ -444,7 +463,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             .context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
-                        let SignatureData::Func { params, returns } = p else{
+                        let SignatureData::Func { params, returns,.. } = p else {
                             continue;
                         };
                         let p = new_sig(
@@ -476,9 +495,12 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                         }
                                     })
                                     .collect(),
+                                    shared: true,
                             },
                         );
-                        let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
+                        let p = m
+                            .funcs
+                            .push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                         if let ImportKind::Func(f) = &mut import.kind {
                             let s = m.funcs[*f].sig();
                             let o = replace(f, p);
@@ -506,12 +528,8 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 v2.push(a);
                             }
                             let rets = b.rets.clone();
-                            let rets = add_op(
-                                &mut b,
-                                &v2,
-                                &rets,
-                                Operator::Call { function_index: p },
-                            );
+                            let rets =
+                                add_op(&mut b, &v2, &rets, Operator::Call { function_index: p });
                             b.append_to_block(k, rets);
                             let rets = results_ref_2(&mut b, rets);
                             let mut r2 = vec![];
@@ -520,7 +538,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(true, &mut b, k, r, v, talloc, tfree, t)?;
                                 r2.push(a);
                             }
-                            b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
+                            b.set_terminator(
+                                k,
+                                portal_pc_waffle::Terminator::Return { values: r2 },
+                            );
                             m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
                         }
                     }
@@ -542,7 +563,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             export.name = format!("pit/{}/~{a}", i.rid_str());
                             let p = to_waffle_sig(m, &x, false);
                             let p = m.signatures[p].clone();
-                            let SignatureData::Func { params, returns } = p else{
+                            let SignatureData::Func { params, returns,.. } = p else {
                                 continue;
                             };
                             let p = new_sig(
@@ -556,6 +577,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                         .chain(params.into_iter())
                                         .collect(),
                                     returns: returns.iter().cloned().collect(),
+                                    shared: true,
                                 },
                             );
                             // let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
@@ -591,7 +613,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                     (a, k) = shim(false, &mut b, k, r, v, talloc, tfree, t)?;
                                     r2.push(a);
                                 }
-                                b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
+                                b.set_terminator(
+                                    k,
+                                    portal_pc_waffle::Terminator::Return { values: r2 },
+                                );
                                 *f = m.funcs.push(FuncDecl::Body(s, format!("_pit"), b));
                             }
                         }
@@ -601,7 +626,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                         let x = i.methods.get(b).context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
-                        let SignatureData::Func { params, returns } = p else{
+                        let SignatureData::Func { params, returns,.. } = p else {
                             continue;
                         };
                         let p = new_sig(
@@ -615,6 +640,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                     .chain(params.into_iter())
                                     .collect(),
                                 returns: returns.iter().cloned().collect(),
+                                shared: true,
                             },
                         );
                         // let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
@@ -636,12 +662,8 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(true, &mut b, k, &r, v, talloc, tfree, t)?;
                                 v2.push(a);
                             }
-                            let rets = add_op(
-                                &mut b,
-                                &v2,
-                                &returns,
-                                Operator::Call { function_index: p },
-                            );
+                            let rets =
+                                add_op(&mut b, &v2, &returns, Operator::Call { function_index: p });
                             b.append_to_block(k, rets);
                             let rets = results_ref_2(&mut b, rets);
                             let mut r2 = vec![];
@@ -650,7 +672,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(false, &mut b, k, r, v, talloc, tfree, t)?;
                                 r2.push(a);
                             }
-                            b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
+                            b.set_terminator(
+                                k,
+                                portal_pc_waffle::Terminator::Return { values: r2 },
+                            );
                             *f = m.funcs.push(FuncDecl::Body(s, format!("_pit"), b));
                         }
                     }

@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use core::iter::once;
 use core::mem::{replace, take};
 use portal_pc_waffle::util::results_ref_2;
+use portal_pc_waffle::{HeapType, WithMutablility};
 
 use anyhow::Context;
 use pit_core::Interface;
@@ -16,6 +17,8 @@ use portal_pc_waffle::{
     WithNullable,
 };
 use sha3::{Digest, Sha3_256};
+
+use crate::tutils::{talloc, tfree};
 // use waffle_ast::{results_ref_2, Builder, Expr};
 
 // use crate::util::{talloc, tfree};
@@ -45,7 +48,7 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
         s,
         format!("pit/{rid}.~{target}"),
     ));
-    // let mut tcache: BTreeMap<Vec<Type>, _> = BTreeMap::new();
+    let mut tcache: BTreeMap<Vec<Type>, _> = BTreeMap::new();
     let tx = m.tables.push(TableData {
         ty: Type::Heap(WithNullable {
             nullable: true,
@@ -57,33 +60,40 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
         table64: false,
     });
     // let mut tc2 = BTreeMap::new();
-    // let mut tc = |m: &mut Module, tys| {
-    //     tcache
-    //         .entry(tys)
-    //         .or_insert_with_key(|tys| {
-    //             let sacris = tys
-    //                 .iter()
-    //                 .cloned()
-    //                 .map(|a| {
-    //                     *tc2.entry(a.clone()).or_insert_with(|| {
-    //                         m.tables.push(TableData {
-    //                             ty: a,
-    //                             initial: 0,
-    //                             max: None,
-    //                             func_elements: None,
-    //                             table64: false,
-    //                         })
-    //                     })
-    //                 })
-    //                 .collect::<Vec<_>>();
-    //             (
-    //                 talloc(m, tx, &sacris).unwrap(),
-    //                 tfree(m, tx, &sacris).unwrap(),
-    //                 sacris,
-    //             )
-    //         })
-    //         .clone()
-    // };
+    let mut tc = |m: &mut Module, tys| {
+        tcache
+            .entry(tys)
+            .or_insert_with_key(|tys| {
+                let st = m.signatures.push(SignatureData::Struct {
+                    fields: tys
+                        .iter()
+                        .cloned()
+                        .map(|a| WithMutablility {
+                            mutable: false,
+                            value: portal_pc_waffle::StorageType::Val(a),
+                        })
+                        .collect(),
+                    shared: true,
+                });
+                let stt = m.tables.push(TableData {
+                    ty: Type::Heap(WithNullable {
+                        value: portal_pc_waffle::HeapType::Sig { sig_index: st },
+                        nullable: true,
+                    }),
+                    initial: 0,
+                    max: None,
+                    func_elements: None,
+                    table64: false,
+                });
+                (
+                    talloc(m, stt, &[]).unwrap(),
+                    tfree(m, stt, &[]).unwrap(),
+                    st,
+                    stt,
+                )
+            })
+            .clone()
+    };
     let mut m2 = BTreeMap::new();
     let is = take(&mut m.imports);
     let stub = new_sig(
@@ -112,7 +122,8 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                         let fname = m.funcs[f].name().to_owned();
                         let mut b = FunctionBody::new(&m, fs);
                         let k = b.entry;
-                        // let (ta, _, _) = tc(m, b.blocks[k].params.iter().map(|a| a.0).collect());
+                        let (ta, _, ts, tts) =
+                            tc(m, b.blocks[k].params.iter().map(|a| a.0).collect());
                         m2.insert(
                             a.to_owned(),
                             b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>(),
@@ -166,12 +177,23 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                                 &[],
                                 &[Type::I32],
                             );
-                            let a = b.add_op(
-                                k,
-                                Operator::I32Mul,
-                                &[b.blocks[k].params[0].1, a],
-                                &[Type::I32],
-                            );
+                            let v = if b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>()
+                                == vec![Type::I32]
+                            {
+                                b.blocks[k].params[0].1
+                            } else {
+                                let a = b.add_op(
+                                    k,
+                                    Operator::StructNew { sig: ts },
+                                    &b.blocks[k].params.iter().map(|a| a.1).collect::<Vec<_>>(),
+                                    &[Type::Heap(WithNullable {
+                                        value: HeapType::Sig { sig_index: ts },
+                                        nullable: true,
+                                    })],
+                                );
+                                b.add_op(k, Operator::Call { function_index: ta }, &[a], &[Type::I32])
+                            };
+                            let a = b.add_op(k, Operator::I32Mul, &[v, a], &[Type::I32]);
                             let c = b.add_op(
                                 k,
                                 Operator::I32Const { value: x as u32 },
@@ -321,27 +343,44 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                         },
                     );
                 } else {
-                    // let (_, tf, ts) = tc(m, t.clone());
-                    // let real = if method == ".drop" {
-                    //     let c = b.add_op(k, Operator::Call { function_index: tf }, &[a], &t);
-                    //     results_ref_2(&mut b, c)[1..].to_vec()
-                    // } else {
-                    //     t.iter()
-                    //         .cloned()
-                    //         .zip(ts.into_iter())
-                    //         .map(|(u, w)| {
-                    //             b.add_op(k, Operator::TableGet { table_index: w }, &[a], &[u])
-                    //         })
-                    //         .collect()
-                    // };
-                    // b.set_terminator(
-                    //     k,
-                    //     portal_pc_waffle::Terminator::ReturnCall {
-                    //         func: *f,
-                    //         args: real.into_iter().chain(args.into_iter()).collect(),
-                    //     },
-                    // );
-                    anyhow::bail!("invalid type");
+                    let (_, tf, ts, tts) = tc(m, t.clone());
+                    let real = if method == ".drop" {
+                        let c = b.add_op(k, Operator::Call { function_index: tf }, &[a], &t);
+                        t.iter()
+                            .cloned()
+                            // .zip(ts.into_iter())
+                            .enumerate()
+                            .map(|(w, u)| {
+                                b.add_op(k, Operator::StructGet { sig: ts, idx: w }, &[a], &[u])
+                            })
+                            .collect::<Vec<_>>()
+                    } else {
+                        let a = b.add_op(
+                            k,
+                            Operator::TableGet { table_index: tts },
+                            &[a],
+                            &[Type::Heap(WithNullable {
+                                value: portal_pc_waffle::HeapType::Sig { sig_index: ts },
+                                nullable: true,
+                            })],
+                        );
+                        t.iter()
+                            .cloned()
+                            // .zip(ts.into_iter())
+                            .enumerate()
+                            .map(|(w, u)| {
+                                b.add_op(k, Operator::StructGet { sig: ts, idx: w }, &[a], &[u])
+                            })
+                            .collect()
+                    };
+                    b.set_terminator(
+                        k,
+                        portal_pc_waffle::Terminator::ReturnCall {
+                            func: *f,
+                            args: real.into_iter().chain(args.into_iter()).collect(),
+                        },
+                    );
+                    // anyhow::bail!("invalid type");
                 }
                 Ok(BlockTarget {
                     block: k,
