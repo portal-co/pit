@@ -1,7 +1,10 @@
 [workspace]
-members=[ "pit-basic", "pit-c", "pit-cli","pit-core", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host", "pit-rust-host-lib", "pit-teavm", "pit-wit-bridge", "tpit-rt"]
+members=[ "pit-basic", "pit-c", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host-lib", "pit-teavm",  "tpit-rt"]
 resolver="2"
 
+# "pit-core","pit-rust-host","pit-wit-bridge", "pit-cli",
+
 [workspace.dependencies]
-portal-pc-waffle = "0.3.2"
-waffle-ast = "0.4"
+portal-pc-waffle = "^0.5"
+# waffle-ast = "0.4"
+pit-core = "^0.4"

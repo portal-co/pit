@@ -9,7 +9,8 @@ description = "Portal Interface Types"
 
 [dependencies]
 hex = "0.4.3"
-pit-core = { version = "0.3.0", path = "../pit-core" }
+nom = "^8"
+pit-core.workspace = true
 proc-macro2 = "1.0.85"
 quasiquote = "0.1.1"
 quote = "1.0.36"

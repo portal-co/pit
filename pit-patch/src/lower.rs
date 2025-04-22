@@ -1,22 +1,33 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    iter::once,
-    mem::take,
-};
+use alloc::borrow::ToOwned;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::iter::once;
+use core::mem::{replace, take};
+use portal_pc_waffle::copying::fcopy::{obf_mod, DontObf, Obfuscate};
 
 use anyhow::Context;
-use waffle::{
-    entity::EntityRef, util::new_sig, ExportKind, Func, FuncDecl, FunctionBody, HeapType, Import, ImportKind, Module, Operator, SignatureData, StorageType, TableData, Type, ValueDef, WithNullable
+use portal_pc_waffle::{
+    entity::EntityRef, util::new_sig, ExportKind, Func, FuncDecl, FunctionBody, HeapType, Import,
+    ImportKind, Module, Operator, SignatureData, StorageType, TableData, Type, ValueDef,
+    WithNullable,
 };
-use waffle_ast::{
-    add_op,
-    fcopy::{obf_mod, DontObf, Obfuscate},
-    Builder, Expr,
-};
+// use waffle_ast::{
+//     add_op,
+//     fcopy::{obf_mod, DontObf, Obfuscate},
+//     Builder, Expr,
+// };
 
-use crate::{canon::canon, util::talloc};
+use crate::canon::canon;
+use crate::util::add_op;
 pub fn patch_ty(t: &mut Type) {
-    if let Type::Heap(WithNullable { value: HeapType::ExternRef, nullable }) = t.clone() {
+    if let Type::Heap(WithNullable {
+        value: HeapType::ExternRef,
+        nullable,
+    }) = t.clone()
+    {
         *t = Type::I32
     }
 }
@@ -25,12 +36,12 @@ impl Obfuscate for LowerTables {
     fn obf(
         &mut self,
         o: Operator,
-        f: &mut waffle::FunctionBody,
-        b: waffle::Block,
-        args: &[waffle::Value],
+        f: &mut portal_pc_waffle::FunctionBody,
+        b: portal_pc_waffle::Block,
+        args: &[portal_pc_waffle::Value],
         types: &[Type],
         module: &mut Module,
-    ) -> anyhow::Result<(waffle::Value, waffle::Block)> {
+    ) -> anyhow::Result<(portal_pc_waffle::Value, portal_pc_waffle::Block)> {
         match o {
             Operator::TableGet { table_index }
             | Operator::TableSet { table_index }
@@ -93,7 +104,7 @@ pub fn import_fn(m: &mut Module, mo: String, n: String, s: SignatureData) -> Fun
     let s = new_sig(m, s);
     let f = m
         .funcs
-        .push(waffle::FuncDecl::Import(s, format!("{mo}.{n}")));
+        .push(portal_pc_waffle::FuncDecl::Import(s, format!("{mo}.{n}")));
     m.imports.push(Import {
         module: mo,
         name: n,
@@ -104,7 +115,7 @@ pub fn import_fn(m: &mut Module, mo: String, n: String, s: SignatureData) -> Fun
 pub struct Cfg {
     pub unexportable_i32_tables: bool,
 }
-pub fn canon_all(m: &mut Module, cfg: &Cfg, root: &str) -> anyhow::Result<()>{
+pub fn canon_all(m: &mut Module, cfg: &Cfg, root: &str) -> anyhow::Result<()> {
     let i = crate::get_interfaces(m)?;
     let interfaces = i
         .into_iter()
@@ -131,27 +142,27 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
         canon(m, &j.rid_str(), root)?;
     }
     for s in m.signatures.values_mut() {
-        match s{
-            SignatureData::Func { params, returns } => {
+        match s {
+            SignatureData::Func {
+                params, returns, ..
+            } => {
                 for p in params.iter_mut().chain(returns.iter_mut()) {
                     patch_ty(p)
                 }
-            },
-            SignatureData::Struct { fields } => {
-                for f in fields.iter_mut(){
-                    if let StorageType::Val(v) = &mut f.value{
+            }
+            SignatureData::Struct { fields, .. } => {
+                for f in fields.iter_mut() {
+                    if let StorageType::Val(v) = &mut f.value {
                         patch_ty(v);
                     }
                 }
-            },
-            SignatureData::Array { ty } =>{
-                if let StorageType::Val(v) = &mut ty.value{
+            }
+            SignatureData::Array { ty, .. } => {
+                if let StorageType::Val(v) = &mut ty.value {
                     patch_ty(v);
                 }
-            },
-            SignatureData::None => {
-
-            },
+            }
+            SignatureData::None => {}
             _ => todo!(),
         }
     }
@@ -169,12 +180,24 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
             if let ValueDef::Operator(o, _1, tys) = &mut b.values[v] {
                 match o.clone() {
                     Operator::RefNull { ty } => {
-                        if matches!(ty,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
+                        if matches!(
+                            ty,
+                            Type::Heap(WithNullable {
+                                value: HeapType::ExternRef,
+                                nullable
+                            })
+                        ) {
                             *o = Operator::I32Const { value: 0 }
                         }
                     }
                     Operator::RefIsNull => {
-                        if matches!(b.type_pool[*tys][0] ,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
+                        if matches!(
+                            b.type_pool[*tys][0],
+                            Type::Heap(WithNullable {
+                                value: HeapType::ExternRef,
+                                nullable
+                            })
+                        ) {
                             *o = Operator::I32Eqz
                         }
                     }
@@ -189,7 +212,13 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
     })?;
     // if cfg.unexportable_i32_tables {
     for t in m.tables.values_mut() {
-        if matches!(t.ty,Type::Heap(WithNullable { value: HeapType::ExternRef, nullable })) {
+        if matches!(
+            t.ty,
+            Type::Heap(WithNullable {
+                value: HeapType::ExternRef,
+                nullable
+            })
+        ) {
             t.ty = Type::I32;
         }
     }
@@ -201,7 +230,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
     //         }
     //     }
     // }
-
+    let rl = interfaces.len();
     for i in take(&mut m.imports) {
         if let Some(rid) = i.module.strip_prefix("pit/") {
             let ridx = interfaces
@@ -215,33 +244,49 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                     }
                 })
                 .context("in getting the index")?;
-            let rl = interfaces.len();
+
             if i.name.ends_with(&format!("~{root}")) {
                 if let ImportKind::Func(f) = i.kind {
                     let fs = m.funcs[f].sig();
                     let fname = m.funcs[f].name().to_owned();
                     let mut b = FunctionBody::new(&m, fs);
                     let k = b.entry;
-                    let mut values: Vec<waffle::Value> =
+                    let mut values: Vec<portal_pc_waffle::Value> =
                         b.blocks[k].params.iter().map(|a| a.1).collect();
                     let tys = b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>();
 
-                    let mut e = Expr::Bind(
-                        Operator::I32Add,
-                        vec![
-                            Expr::Bind(Operator::I32Const { value: ridx as u32 }, vec![]),
-                            Expr::Bind(
-                                Operator::I32Mul,
-                                vec![
-                                    Expr::Bind(Operator::I32Const { value: rl as u32 }, vec![]),
-                                    Expr::Leaf(values[0]),
-                                ],
-                            ),
-                        ],
-                    );
-                    let (v, k) = e.build(m, &mut b, k)?;
+                    // let mut e = Expr::Bind(
+                    //     Operator::I32Add,
+                    //     vec![
+                    //         Expr::Bind(Operator::I32Const { value: ridx as u32 }, vec![]),
+                    //         Expr::Bind(
+                    //             Operator::I32Mul,
+                    //             vec![
+                    //                 Expr::Bind(Operator::I32Const { value: rl as u32 }, vec![]),
+                    //                 Expr::Leaf(values[0]),
+                    //             ],
+                    //         ),
+                    //     ],
+                    // );
+                    // let (v, k) = e.build(m, &mut b, k)?;
+                    let v = {
+                        let ridx = b.add_op(
+                            k,
+                            Operator::I32Const { value: ridx as u32 },
+                            &[],
+                            &[Type::I32],
+                        );
+                        let rl = b.add_op(
+                            k,
+                            Operator::I32Const { value: rl as u32 },
+                            &[],
+                            &[Type::I32],
+                        );
+                        let v = b.add_op(k, Operator::I32Mul, &[rl, values[0]], &[Type::I32]);
+                        b.add_op(k, Operator::I32Add, &[v, ridx], &[Type::I32])
+                    };
                     values = vec![v];
-                    b.set_terminator(k, waffle::Terminator::Return { values });
+                    b.set_terminator(k, portal_pc_waffle::Terminator::Return { values });
                     m.funcs[f] = FuncDecl::Body(fs, fname, b);
                     continue;
                 }
@@ -270,16 +315,29 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                         .iter()
                         .map(|a| a.1)
                         .collect::<Vec<_>>();
-                    let mut e = Expr::Bind(
-                        Operator::I32DivU,
-                        vec![
-                            Expr::Leaf(args[0]),
-                            Expr::Bind(Operator::I32Const { value: rl as u32 }, vec![]),
-                        ],
-                    );
-                    let (v, k) = e.build(m, &mut b, k)?;
+                    let v = match args[0] {
+                        v => {
+                            let ridx = b.add_op(
+                                k,
+                                Operator::I32Const { value: ridx as u32 },
+                                &[],
+                                &[Type::I32],
+                            );
+                            let rl = b.add_op(
+                                k,
+                                Operator::I32Const { value: rl as u32 },
+                                &[],
+                                &[Type::I32],
+                            );
+                            // let v = b.add_op(k,Operator::I32Mul,&[rl,values[0]],&[Type::I32]);
+                            b.add_op(k, Operator::I32DivU, &[v, rl], &[Type::I32])
+                        }
+                    };
                     args[0] = v;
-                    b.set_terminator(k, waffle::Terminator::ReturnCall { func: ex, args });
+                    b.set_terminator(
+                        k,
+                        portal_pc_waffle::Terminator::ReturnCall { func: ex, args },
+                    );
                     m.funcs[f] = FuncDecl::Body(fs, fname, b);
                     continue;
                 }
@@ -307,9 +365,9 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 })
                 .collect::<Vec<_>>();
             let t = m.tables.push(TableData {
-                ty: Type::Heap(WithNullable{
+                ty: Type::Heap(WithNullable {
                     nullable: true,
-                    value: waffle::HeapType::FuncRef
+                    value: portal_pc_waffle::HeapType::FuncRef,
                 }),
                 initial: fs.len() as u64,
                 max: Some(fs.len() as u64),
@@ -326,37 +384,53 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                     .iter()
                     .map(|a| a.1)
                     .collect::<Vec<_>>();
-                let mut e = Expr::Bind(
-                    Operator::I32DivU,
-                    vec![
-                        Expr::Leaf(b.blocks[k].params[0].1),
-                        Expr::Bind(
-                            Operator::I32Const {
-                                value: fs.len() as u32,
-                            },
-                            vec![],
-                        ),
-                    ],
-                );
-                let (a, k) = e.build(m, &mut b, k)?;
-                let mut e = Expr::Bind(
-                    Operator::I32RemU,
-                    vec![
-                        Expr::Leaf(b.blocks[k].params[0].1),
-                        Expr::Bind(
-                            Operator::I32Const {
-                                value: fs.len() as u32,
-                            },
-                            vec![],
-                        ),
-                    ],
-                );
-                let (c, k) = e.build(m, &mut b, k)?;
+                // let mut e = Expr::Bind(
+                //     Operator::I32DivU,
+                //     vec![
+                //         Expr::Leaf(b.blocks[k].params[0].1),
+                //         Expr::Bind(
+                //             Operator::I32Const {
+                //                 value: fs.len() as u32,
+                //             },
+                //             vec![],
+                //         ),
+                //     ],
+                // );
+                // let (a, k) = e.build(m, &mut b, k)?;
+                // let mut e = Expr::Bind(
+                //     Operator::I32RemU,
+                //     vec![
+                //         Expr::Leaf(b.blocks[k].params[0].1),
+                //         Expr::Bind(
+                //             Operator::I32Const {
+                //                 value: fs.len() as u32,
+                //             },
+                //             vec![],
+                //         ),
+                //     ],
+                // );
+                // let (c, k) = e.build(m, &mut b, k)?;
+                let (a, c) = match b.blocks[k].params[0].1 {
+                    v => {
+                        // let ridx = b.add_op(k,Operator::I32Const { value: ridx as u32 },&[],&[Type::I32]);
+                        let rl = b.add_op(
+                            k,
+                            Operator::I32Const { value: rl as u32 },
+                            &[],
+                            &[Type::I32],
+                        );
+                        // let v = b.add_op(k,Operator::I32Mul,&[rl,values[0]],&[Type::I32]);
+                        (
+                            b.add_op(k, Operator::I32DivU, &[v, rl], &[Type::I32]),
+                            b.add_op(k, Operator::I32RemU, &[v, rl], &[Type::I32]),
+                        )
+                    }
+                };
                 args[0] = a;
                 args.push(c);
                 b.set_terminator(
                     k,
-                    waffle::Terminator::ReturnCallIndirect {
+                    portal_pc_waffle::Terminator::ReturnCallIndirect {
                         sig: fsi,
                         table: t,
                         args,
@@ -373,7 +447,7 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                 let mut b = FunctionBody::new(&m, fsi);
                 let k = b.entry;
                 let s = b.add_op(k, Operator::I32Const { value: 1 }, &[], &[Type::I32]);
-                b.set_terminator(k, waffle::Terminator::Return { values: vec![s] });
+                b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: vec![s] });
                 m.funcs[f] = FuncDecl::Body(fsi, fname, b);
                 continue;
             }

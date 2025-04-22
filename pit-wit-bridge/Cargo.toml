@@ -8,9 +8,10 @@ description = "Portal Interface Types WIT bridge"
 [dependencies]
 anyhow = "1.0.93"
 nonempty = "0.10.0"
-pit-core = { version = "0.3.0", path = "../pit-core" }
-pit-patch = { version = "0.3.0", path = "../pit-patch" }
+nom = "^8"
+pit-core.workspace = true
 portal-pc-waffle.workspace = true
+pit-patch = { version = "0.3.0", path = "../pit-patch" }
 wasmtime-environ = { version = "18.0.1", features = ["component-model"] }
 wit-bindgen-core = "0.34.0"
 wit-component = "0.219.1"

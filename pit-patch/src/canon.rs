@@ -1,15 +1,24 @@
-use std::{collections::BTreeMap, iter::once, mem::take};
+use alloc::borrow::ToOwned;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::iter::once;
+use core::mem::{replace, take};
+use portal_pc_waffle::util::results_ref_2;
 
 use anyhow::Context;
 use pit_core::Interface;
-use sha3::{Digest, Sha3_256};
-use waffle::{
+use portal_pc_waffle::{
     entity::EntityRef, util::new_sig, BlockTarget, Export, ExportKind, Func, FuncDecl,
-    FunctionBody, Import, ImportKind, Module, Operator, SignatureData, TableData, Type, WithNullable,
+    FunctionBody, Import, ImportKind, Module, Operator, SignatureData, TableData, Type,
+    WithNullable,
 };
-use waffle_ast::{results_ref_2, Builder, Expr};
+use sha3::{Digest, Sha3_256};
+// use waffle_ast::{results_ref_2, Builder, Expr};
 
-use crate::util::{talloc, tfree};
+// use crate::util::{talloc, tfree};
 
 pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
     let mut xs = vec![];
@@ -25,55 +34,67 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
         m,
         SignatureData::Func {
             params: vec![Type::I32],
-            returns: vec![Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef})],
+            returns: vec![Type::Heap(WithNullable {
+                nullable: true,
+                value: portal_pc_waffle::HeapType::ExternRef,
+            })],
+            shared: true,
         },
     );
-    let f2 = m
-        .funcs
-        .push(waffle::FuncDecl::Import(s, format!("pit/{rid}.~{target}")));
-    let mut tcache: BTreeMap<Vec<Type>, _> = BTreeMap::new();
+    let f2 = m.funcs.push(portal_pc_waffle::FuncDecl::Import(
+        s,
+        format!("pit/{rid}.~{target}"),
+    ));
+    // let mut tcache: BTreeMap<Vec<Type>, _> = BTreeMap::new();
     let tx = m.tables.push(TableData {
-        ty: Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef}),
+        ty: Type::Heap(WithNullable {
+            nullable: true,
+            value: portal_pc_waffle::HeapType::ExternRef,
+        }),
         initial: 0,
         max: None,
         func_elements: None,
         table64: false,
     });
-    let mut tc2 = BTreeMap::new();
-    let mut tc = |m: &mut Module, tys| {
-        tcache
-            .entry(tys)
-            .or_insert_with_key(|tys| {
-                let sacris = tys
-                    .iter()
-                    .cloned()
-                    .map(|a| {
-                        *tc2.entry(a.clone()).or_insert_with(|| {
-                            m.tables.push(TableData {
-                                ty: a,
-                                initial: 0,
-                                max: None,
-                                func_elements: None,
-                                table64: false,
-                            })
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                (
-                    talloc(m, tx, &sacris).unwrap(),
-                    tfree(m, tx, &sacris).unwrap(),
-                    sacris,
-                )
-            })
-            .clone()
-    };
+    // let mut tc2 = BTreeMap::new();
+    // let mut tc = |m: &mut Module, tys| {
+    //     tcache
+    //         .entry(tys)
+    //         .or_insert_with_key(|tys| {
+    //             let sacris = tys
+    //                 .iter()
+    //                 .cloned()
+    //                 .map(|a| {
+    //                     *tc2.entry(a.clone()).or_insert_with(|| {
+    //                         m.tables.push(TableData {
+    //                             ty: a,
+    //                             initial: 0,
+    //                             max: None,
+    //                             func_elements: None,
+    //                             table64: false,
+    //                         })
+    //                     })
+    //                 })
+    //                 .collect::<Vec<_>>();
+    //             (
+    //                 talloc(m, tx, &sacris).unwrap(),
+    //                 tfree(m, tx, &sacris).unwrap(),
+    //                 sacris,
+    //             )
+    //         })
+    //         .clone()
+    // };
     let mut m2 = BTreeMap::new();
     let is = take(&mut m.imports);
     let stub = new_sig(
         m,
         SignatureData::Func {
             params: vec![],
-            returns: vec![Type::Heap(WithNullable{nullable: true, value:waffle::HeapType::ExternRef})],
+            returns: vec![Type::Heap(WithNullable {
+                nullable: true,
+                value: portal_pc_waffle::HeapType::ExternRef,
+            })],
+            shared: true,
         },
     );
     let stub = m.funcs.push(FuncDecl::Import(stub, format!("stub")));
@@ -91,55 +112,81 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                         let fname = m.funcs[f].name().to_owned();
                         let mut b = FunctionBody::new(&m, fs);
                         let k = b.entry;
-                        let (ta, _, _) = tc(m, b.blocks[k].params.iter().map(|a| a.0).collect());
+                        // let (ta, _, _) = tc(m, b.blocks[k].params.iter().map(|a| a.0).collect());
                         m2.insert(
                             a.to_owned(),
                             b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>(),
                         );
-                        let mut e = Expr::Bind(
-                            Operator::I32Add,
-                            vec![
-                                Expr::Bind(Operator::I32Const { value: x as u32 }, vec![]),
-                                Expr::Bind(
-                                    Operator::I32Mul,
-                                    vec![
-                                        Expr::Bind(
-                                            Operator::I32Const {
-                                                value: xs.len() as u32,
-                                            },
-                                            vec![],
-                                        ),
-                                        if b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>()
-                                            == vec![Type::I32]
-                                        {
-                                            Expr::Leaf(b.blocks[k].params[0].1)
-                                        } else {
-                                            Expr::Bind(
-                                                Operator::Call { function_index: ta },
-                                                once(Expr::Bind(
-                                                    Operator::Call {
-                                                        function_index: stub,
-                                                    },
-                                                    vec![],
-                                                ))
-                                                .chain(
-                                                    b.blocks[k]
-                                                        .params
-                                                        .iter()
-                                                        .map(|p| Expr::Leaf(p.1)),
-                                                )
-                                                .collect(),
-                                            )
-                                        },
-                                    ],
-                                ),
-                            ],
-                        );
-                        let (a, k) = e.build(m, &mut b, k)?;
+                        // let mut e = Expr::Bind(
+                        //     Operator::I32Add,
+                        //     vec![
+                        //         Expr::Bind(Operator::I32Const { value: x as u32 }, vec![]),
+                        //         Expr::Bind(
+                        //             Operator::I32Mul,
+                        //             vec![
+                        //                 Expr::Bind(
+                        //                     Operator::I32Const {
+                        //                         value: xs.len() as u32,
+                        //                     },
+                        //                     vec![],
+                        //                 ),
+                        //                 if b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>()
+                        //                     == vec![Type::I32]
+                        //                 {
+                        //                     Expr::Leaf(b.blocks[k].params[0].1)
+                        //                 } else {
+                        //                     Expr::Bind(
+                        //                         Operator::Call { function_index: ta },
+                        //                         once(Expr::Bind(
+                        //                             Operator::Call {
+                        //                                 function_index: stub,
+                        //                             },
+                        //                             vec![],
+                        //                         ))
+                        //                         .chain(
+                        //                             b.blocks[k]
+                        //                                 .params
+                        //                                 .iter()
+                        //                                 .map(|p| Expr::Leaf(p.1)),
+                        //                         )
+                        //                         .collect(),
+                        //                     )
+                        //                 },
+                        //             ],
+                        //         ),
+                        //     ],
+                        // );
+                        // let (a, k) = e.build(m, &mut b, k)?;
+                        let a = {
+                            let a = b.add_op(
+                                k,
+                                Operator::I32Const {
+                                    value: xs.len() as u32,
+                                },
+                                &[],
+                                &[Type::I32],
+                            );
+                            let a = b.add_op(
+                                k,
+                                Operator::I32Mul,
+                                &[b.blocks[k].params[0].1, a],
+                                &[Type::I32],
+                            );
+                            let c = b.add_op(
+                                k,
+                                Operator::I32Const { value: x as u32 },
+                                &[],
+                                &[Type::I32],
+                            );
+                            b.add_op(k, Operator::I32Add, &[a, c], &[Type::I32])
+                        };
                         let args = once(a)
                             .chain(b.blocks[b.entry].params[1..].iter().map(|a| a.1))
                             .collect();
-                        b.set_terminator(k, waffle::Terminator::ReturnCall { func: f2, args });
+                        b.set_terminator(
+                            k,
+                            portal_pc_waffle::Terminator::ReturnCall { func: f2, args },
+                        );
                         m.funcs[f] = FuncDecl::Body(fs, fname, b);
                         continue;
                     }
@@ -183,40 +230,61 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
             .collect::<Vec<_>>();
         let sig = m.funcs[sig].sig();
         let mut sig = m.signatures[sig].clone();
-        if let SignatureData::Func { params, returns } = &mut sig{
-        *params = once(Type::I32)
-            .chain(params[a.1.len()..].iter().cloned())
-            .collect();
+        if let SignatureData::Func {
+            params, returns, ..
+        } = &mut sig
+        {
+            *params = once(Type::I32)
+                .chain(params[a.1.len()..].iter().cloned())
+                .collect::<Vec<_>>();
         }
         let sig = new_sig(m, sig);
         let mut b = FunctionBody::new(&m, sig);
         let k = b.entry;
-        let mut e = Expr::Bind(
+        let fl = b.add_op(
+            k,
+            Operator::I32Const {
+                value: funcs.len() as u32,
+            },
+            &[],
+            &[Type::I32],
+        );
+        // let mut e = Expr::Bind(
+        //     Operator::I32DivU,
+        //     vec![
+        //         Expr::Leaf(b.blocks[k].params[0].1),
+        //         Expr::Bind(
+        //             ,
+        //             vec![],
+        //         ),
+        //     ],
+        // );
+        // let (a, k) = e.build(m, &mut b, k)?;
+        let a = b.add_op(
+            k,
             Operator::I32DivU,
-            vec![
-                Expr::Leaf(b.blocks[k].params[0].1),
-                Expr::Bind(
-                    Operator::I32Const {
-                        value: funcs.len() as u32,
-                    },
-                    vec![],
-                ),
-            ],
+            &[b.blocks[k].params[0].1, fl],
+            &[Type::I32],
         );
-        let (a, k) = e.build(m, &mut b, k)?;
-        let mut e = Expr::Bind(
+        // let mut e = Expr::Bind(
+        //     Operator::I32RemU,
+        //     vec![
+        //         Expr::Leaf(b.blocks[k].params[0].1),
+        //         Expr::Bind(
+        //             Operator::I32Const {
+        //                 value: funcs.len() as u32,
+        //             },
+        //             vec![],
+        //         ),
+        //     ],
+        // );
+        // let (c, k) = e.build(m, &mut b, k)?;
+        let c = b.add_op(
+            k,
             Operator::I32RemU,
-            vec![
-                Expr::Leaf(b.blocks[k].params[0].1),
-                Expr::Bind(
-                    Operator::I32Const {
-                        value: funcs.len() as u32,
-                    },
-                    vec![],
-                ),
-            ],
+            &[b.blocks[k].params[0].1, fl],
+            &[Type::I32],
         );
-        let (c, k) = e.build(m, &mut b, k)?;
         let args = b.blocks[b.entry].params[1..]
             .iter()
             .map(|a| a.1)
@@ -239,50 +307,51 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                             Type::V128 => todo!(),
                             Type::Heap(_) => {
                                 b.add_op(k, Operator::RefNull { ty: t.clone() }, &[], &[t])
-                            },
-                            _ => todo!()
+                            }
+                            _ => todo!(),
                         })
                         .collect();
-                    b.set_terminator(k, waffle::Terminator::Return { values: rets });
+                    b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: rets });
                 } else if *t == vec![Type::I32] {
                     b.set_terminator(
                         k,
-                        waffle::Terminator::ReturnCall {
+                        portal_pc_waffle::Terminator::ReturnCall {
                             func: *f,
                             args: once(a).chain(args.into_iter()).collect(),
                         },
                     );
                 } else {
-                    let (_, tf, ts) = tc(m, t.clone());
-                    let real = if method == ".drop" {
-                        let c = b.add_op(k, Operator::Call { function_index: tf }, &[a], &t);
-                        results_ref_2(&mut b, c)[1..].to_vec()
-                    } else {
-                        t.iter()
-                            .cloned()
-                            .zip(ts.into_iter())
-                            .map(|(u, w)| {
-                                b.add_op(k, Operator::TableGet { table_index: w }, &[a], &[u])
-                            })
-                            .collect()
-                    };
-                    b.set_terminator(
-                        k,
-                        waffle::Terminator::ReturnCall {
-                            func: *f,
-                            args: real.into_iter().chain(args.into_iter()).collect(),
-                        },
-                    );
+                    // let (_, tf, ts) = tc(m, t.clone());
+                    // let real = if method == ".drop" {
+                    //     let c = b.add_op(k, Operator::Call { function_index: tf }, &[a], &t);
+                    //     results_ref_2(&mut b, c)[1..].to_vec()
+                    // } else {
+                    //     t.iter()
+                    //         .cloned()
+                    //         .zip(ts.into_iter())
+                    //         .map(|(u, w)| {
+                    //             b.add_op(k, Operator::TableGet { table_index: w }, &[a], &[u])
+                    //         })
+                    //         .collect()
+                    // };
+                    // b.set_terminator(
+                    //     k,
+                    //     portal_pc_waffle::Terminator::ReturnCall {
+                    //         func: *f,
+                    //         args: real.into_iter().chain(args.into_iter()).collect(),
+                    //     },
+                    // );
+                    anyhow::bail!("invalid type");
                 }
-                BlockTarget {
+                Ok(BlockTarget {
                     block: k,
                     args: vec![],
-                }
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<anyhow::Result<Vec<_>>>()?;
         b.set_terminator(
             k,
-            waffle::Terminator::Select {
+            portal_pc_waffle::Terminator::Select {
                 value: c,
                 targets: blocks,
                 default: BlockTarget {

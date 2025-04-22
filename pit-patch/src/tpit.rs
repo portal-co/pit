@@ -1,21 +1,25 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
+use alloc::{
+    collections::{BTreeMap, BTreeSet}};use core::{
     iter::once,
     mem::{replace, take},
 };
+use alloc::vec;
+use alloc::vec::Vec;
+use alloc::format;
 
 use anyhow::Context;
 use pit_core::{Arg, ResTy};
-use waffle::{
-    util::new_sig, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody,
+use portal_pc_waffle::{
+    util::*, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody,
     ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
 };
-use waffle_ast::{add_op, results_ref_2};
 
-use crate::{
-    get_interfaces,
-    util::{talloc, tfree, to_waffle_sig, waffle_funcs},
-};
+// use waffle_ast::{add_op, results_ref_2};
+
+// use crate::{
+//     get_interfaces,
+//     util::{talloc, tfree, to_waffle_sig, waffle_funcs},
+// };
 
 pub fn shim(
     retref: bool,
@@ -40,9 +44,9 @@ pub fn shim(
     let ep = f.add_blockparam(
         end,
         if retref {
-            waffle::Type::Heap(WithNullable {
+            portal_pc_waffle::Type::Heap(WithNullable {
                 nullable: true,
-                value: waffle::HeapType::ExternRef,
+                value: portal_pc_waffle::HeapType::ExternRef,
             })
         } else {
             Type::I32
@@ -65,21 +69,21 @@ pub fn shim(
         let a = add_op(
             f,
             &[],
-            &[waffle::Type::Heap(WithNullable {
+            &[portal_pc_waffle::Type::Heap(WithNullable {
                 nullable: true,
-                value: waffle::HeapType::ExternRef,
+                value: portal_pc_waffle::HeapType::ExternRef,
             })],
             Operator::RefNull {
-                ty: waffle::Type::Heap(WithNullable {
+                ty: portal_pc_waffle::Type::Heap(WithNullable {
                     nullable: true,
-                    value: waffle::HeapType::ExternRef,
+                    value: portal_pc_waffle::HeapType::ExternRef,
                 }),
             },
         );
         f.append_to_block(n, a);
         f.set_terminator(
             n,
-            waffle::Terminator::Br {
+            portal_pc_waffle::Terminator::Br {
                 target: BlockTarget {
                     block: end,
                     args: vec![a],
@@ -91,7 +95,7 @@ pub fn shim(
         f.append_to_block(n, a);
         f.set_terminator(
             n,
-            waffle::Terminator::Br {
+            portal_pc_waffle::Terminator::Br {
                 target: BlockTarget {
                     block: end,
                     args: vec![a],
@@ -102,7 +106,7 @@ pub fn shim(
     let kk = f.add_block();
     f.set_terminator(
         k,
-        waffle::Terminator::CondBr {
+        portal_pc_waffle::Terminator::CondBr {
             cond: s,
             if_true: BlockTarget {
                 block: n,
@@ -129,9 +133,9 @@ pub fn shim(
             v = add_op(
                 f,
                 &[v],
-                &[waffle::Type::Heap(WithNullable {
+                &[portal_pc_waffle::Type::Heap(WithNullable {
                     nullable: true,
-                    value: waffle::HeapType::ExternRef,
+                    value: portal_pc_waffle::HeapType::ExternRef,
                 })],
                 Operator::Call {
                     function_index: tfree,
@@ -154,9 +158,9 @@ pub fn shim(
             v = add_op(
                 f,
                 &[v],
-                &[waffle::Type::Heap(WithNullable {
+                &[portal_pc_waffle::Type::Heap(WithNullable {
                     nullable: true,
-                    value: waffle::HeapType::ExternRef,
+                    value: portal_pc_waffle::HeapType::ExternRef,
                 })],
                 Operator::TableGet { table_index: table },
             );
@@ -172,7 +176,7 @@ pub fn shim(
     }
     f.set_terminator(
         k,
-        waffle::Terminator::Br {
+        portal_pc_waffle::Terminator::Br {
             target: BlockTarget {
                 block: end,
                 args: vec![v],
@@ -183,9 +187,9 @@ pub fn shim(
 }
 pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
     let t = m.tables.push(TableData {
-        ty: waffle::Type::Heap(WithNullable {
+        ty: portal_pc_waffle::Type::Heap(WithNullable {
             nullable: true,
-            value: waffle::HeapType::ExternRef,
+            value: portal_pc_waffle::HeapType::ExternRef,
         }),
         initial: 0,
         max: None,
@@ -206,16 +210,16 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[waffle::Type::Heap(WithNullable {
+                    &[portal_pc_waffle::Type::Heap(WithNullable {
                         nullable: true,
-                        value: waffle::HeapType::ExternRef,
+                        value: portal_pc_waffle::HeapType::ExternRef,
                     })],
                     Operator::Call {
                         function_index: tfree,
                     },
                 );
                 b.append_to_block(e, arg);
-                b.set_terminator(e, waffle::Terminator::Return { values: vec![] });
+                b.set_terminator(e, portal_pc_waffle::Terminator::Return { values: vec![] });
                 m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
             }
             continue;
@@ -230,16 +234,16 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[waffle::Type::Heap(WithNullable {
+                    &[portal_pc_waffle::Type::Heap(WithNullable {
                         nullable: true,
-                        value: waffle::HeapType::ExternRef,
+                        value: portal_pc_waffle::HeapType::ExternRef,
                     })],
                     Operator::TableGet { table_index: t },
                 );
                 b.append_to_block(e, arg);
                 b.set_terminator(
                     e,
-                    waffle::Terminator::ReturnCall {
+                    portal_pc_waffle::Terminator::ReturnCall {
                         func: talloc,
                         args: vec![arg],
                     },
@@ -257,7 +261,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                     returns: vec![],
                 },
             );
-            let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+            let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
             if let ImportKind::Func(f) = &mut import.kind {
                 let s = m.funcs[*f].sig();
                 let o = replace(f, p);
@@ -267,9 +271,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 let arg = add_op(
                     &mut b,
                     &[arg],
-                    &[waffle::Type::Heap(WithNullable {
+                    &[portal_pc_waffle::Type::Heap(WithNullable {
                         nullable: true,
-                        value: waffle::HeapType::ExternRef,
+                        value: portal_pc_waffle::HeapType::ExternRef,
                     })],
                     if import.name == "drop" {
                         Operator::Call {
@@ -282,7 +286,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 b.append_to_block(e, arg);
                 b.set_terminator(
                     e,
-                    waffle::Terminator::ReturnCall {
+                    portal_pc_waffle::Terminator::ReturnCall {
                         func: p,
                         args: vec![arg],
                     },
@@ -304,7 +308,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             returns: vec![Type::I32],
                         },
                     );
-                    let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                    let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                     let s = m.funcs[*f].sig();
                     let o = replace(f, p);
                     let mut b = FunctionBody::new(&m, s);
@@ -317,16 +321,16 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                     let arg = add_op(
                         &mut b,
                         &arg,
-                        &[waffle::Type::Heap(WithNullable {
+                        &[portal_pc_waffle::Type::Heap(WithNullable {
                             nullable: true,
-                            value: waffle::HeapType::ExternRef,
+                            value: portal_pc_waffle::HeapType::ExternRef,
                         })],
                         Operator::Call { function_index: p },
                     );
                     b.append_to_block(e, arg);
                     b.set_terminator(
                         e,
-                        waffle::Terminator::ReturnCall {
+                        portal_pc_waffle::Terminator::ReturnCall {
                             func: talloc,
                             args: vec![arg],
                         },
@@ -348,13 +352,13 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                     m,
                     SignatureData::Func {
                         params: p,
-                        returns: vec![waffle::Type::Heap(WithNullable {
+                        returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
                             nullable: true,
-                            value: waffle::HeapType::ExternRef,
+                            value: portal_pc_waffle::HeapType::ExternRef,
                         })],
                     },
                 );
-                let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                 let s = m.funcs[*f].sig();
                 let o = replace(f, p);
                 let mut b = FunctionBody::new(&m, s);
@@ -373,7 +377,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 b.append_to_block(e, arg);
                 b.set_terminator(
                     e,
-                    waffle::Terminator::ReturnCall {
+                    portal_pc_waffle::Terminator::ReturnCall {
                         func: tfree,
                         args: vec![arg],
                     },
@@ -400,13 +404,13 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 m,
                                 SignatureData::Func {
                                     params: p,
-                                    returns: vec![waffle::Type::Heap(WithNullable {
+                                    returns: vec![portal_pc_waffle::Type::Heap(WithNullable {
                                         nullable: true,
-                                        value: waffle::HeapType::ExternRef,
+                                        value: portal_pc_waffle::HeapType::ExternRef,
                                     })],
                                 },
                             );
-                            let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                            let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                             let s = m.funcs[*f].sig();
                             let o = replace(f, p);
                             let mut b = FunctionBody::new(&m, s);
@@ -415,16 +419,16 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             let arg = add_op(
                                 &mut b,
                                 &[arg],
-                                &[waffle::Type::Heap(WithNullable {
+                                &[portal_pc_waffle::Type::Heap(WithNullable {
                                     nullable: true,
-                                    value: waffle::HeapType::ExternRef,
+                                    value: portal_pc_waffle::HeapType::ExternRef,
                                 })],
                                 Operator::Call { function_index: p },
                             );
                             b.append_to_block(e, arg);
                             b.set_terminator(
                                 e,
-                                waffle::Terminator::ReturnCall {
+                                portal_pc_waffle::Terminator::ReturnCall {
                                     func: talloc,
                                     args: vec![arg],
                                 },
@@ -449,9 +453,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 params: vec![Type::I32]
                                     .into_iter()
                                     .chain(params.into_iter().map(|a| {
-                                        if a == waffle::Type::Heap(WithNullable {
+                                        if a == portal_pc_waffle::Type::Heap(WithNullable {
                                             nullable: true,
-                                            value: waffle::HeapType::ExternRef,
+                                            value: portal_pc_waffle::HeapType::ExternRef,
                                         }) {
                                             Type::I32
                                         } else {
@@ -462,9 +466,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 returns: returns
                                     .into_iter()
                                     .map(|a| {
-                                        if a == waffle::Type::Heap(WithNullable {
+                                        if a == portal_pc_waffle::Type::Heap(WithNullable {
                                             nullable: true,
-                                            value: waffle::HeapType::ExternRef,
+                                            value: portal_pc_waffle::HeapType::ExternRef,
                                         }) {
                                             Type::I32
                                         } else {
@@ -474,7 +478,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                     .collect(),
                             },
                         );
-                        let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                        let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                         if let ImportKind::Func(f) = &mut import.kind {
                             let s = m.funcs[*f].sig();
                             let o = replace(f, p);
@@ -516,7 +520,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(true, &mut b, k, r, v, talloc, tfree, t)?;
                                 r2.push(a);
                             }
-                            b.set_terminator(k, waffle::Terminator::Return { values: r2 });
+                            b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
                             m.funcs[o] = FuncDecl::Body(s, format!("_pit"), b);
                         }
                     }
@@ -554,7 +558,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                     returns: returns.iter().cloned().collect(),
                                 },
                             );
-                            // let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                            // let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                             if let ExportKind::Func(f) = &mut export.kind {
                                 let s = m.funcs[*f].sig();
                                 let p = *f;
@@ -587,7 +591,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                     (a, k) = shim(false, &mut b, k, r, v, talloc, tfree, t)?;
                                     r2.push(a);
                                 }
-                                b.set_terminator(k, waffle::Terminator::Return { values: r2 });
+                                b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
                                 *f = m.funcs.push(FuncDecl::Body(s, format!("_pit"), b));
                             }
                         }
@@ -613,7 +617,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 returns: returns.iter().cloned().collect(),
                             },
                         );
-                        // let p = m.funcs.push(waffle::FuncDecl::Import(p, format!("_pit")));
+                        // let p = m.funcs.push(portal_pc_waffle::FuncDecl::Import(p, format!("_pit")));
                         if let ExportKind::Func(f) = &mut export.kind {
                             let s = m.funcs[*f].sig();
                             let p = *f;
@@ -646,7 +650,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                 (a, k) = shim(false, &mut b, k, r, v, talloc, tfree, t)?;
                                 r2.push(a);
                             }
-                            b.set_terminator(k, waffle::Terminator::Return { values: r2 });
+                            b.set_terminator(k, portal_pc_waffle::Terminator::Return { values: r2 });
                             *f = m.funcs.push(FuncDecl::Body(s, format!("_pit"), b));
                         }
                     }

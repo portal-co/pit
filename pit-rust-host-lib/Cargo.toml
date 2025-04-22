@@ -9,5 +9,6 @@ description = "Portal Interface Types"
 
 [dependencies]
 anyhow = "1.0.86"
-pit-core = { version = "0.3.0", path = "../pit-core" }
+nom = "^8"
+pit-core.workspace = true
 wasm_runtime_layer = "0.4.0"
