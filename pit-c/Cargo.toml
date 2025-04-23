@@ -3,9 +3,9 @@ name = "pit-c"
 version = "0.3.2"
 edition = "2021"
 license = "CC0-1.0"
-description = "Portal Interface Types Generator for C"
+description = "Portal Interface Types Generator for C on WebAssembly"
 
 [dependencies]
 hex = "0.4.3"
 itertools = "0.13.0"
-pit-core = { version = "0.3.0", path = "../pit-core" }
+pit-core.workspace = true

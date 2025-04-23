@@ -3,7 +3,7 @@ name = "pit-rust-generator"
 version = "0.3.2"
 edition = "2021"
 license = "CC0-1.0"
-description = "Portal Interface Types"
+description = "Portal Interface Types for WebAssembly"
 
 [dependencies]
 anyhow = "1.0.86"

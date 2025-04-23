@@ -3,7 +3,7 @@ name = "pit-rust-guest"
 version = "0.3.2"
 edition = "2021"
 license = "CC0-1.0"
-description = "Portal Interface Types"
+description = "Portal Interface Types for WebAssembly"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
