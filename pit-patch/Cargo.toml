@@ -1,6 +1,6 @@
 [package]
 name = "pit-patch"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types for WebAssembly"

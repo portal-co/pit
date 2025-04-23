@@ -1,6 +1,6 @@
 [package]
 name = "pit-cli"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 license = "CC0-1.0"
 description = "Portal Interface Types"
@@ -8,13 +8,13 @@ description = "Portal Interface Types"
 [dependencies]
 anyhow = "1.0.86"
 base64 = "0.22.1"
-pit-c = { version = "0.3.0", path = "../pit-c" }
+pit-c = { version = "0.4.0", path = "../pit-c" }
 nom = "^8"
 pit-core.workspace = true
 portal-pc-waffle = { workspace = true, features = ["copying"] }
-pit-patch = { version = "0.3.0", path = "../pit-patch" }
-pit-rust-guest = { version = "0.3.0", path = "../pit-rust-guest" }
-pit-teavm = { version = "0.3.0", path = "../pit-teavm" }
+pit-patch = { version = "0.4.0", path = "../pit-patch" }
+pit-rust-guest = { version = "0.4.0", path = "../pit-rust-guest" }
+pit-teavm = { version = "0.4.0", path = "../pit-teavm" }
 prettyplease = "0.2.25"
 proc-macro2 = "1.0.89"
 quote = "1.0.37"
