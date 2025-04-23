@@ -11,4 +11,4 @@ description = "Portal Interface Types"
 anyhow = "1.0.86"
 nom = "^8"
 pit-core.workspace = true
-wasm_runtime_layer = "0.4.0"
+wasm_runtime_layer = "^0.5"

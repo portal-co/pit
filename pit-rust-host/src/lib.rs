@@ -51,9 +51,9 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
         });
         quasiquote!{
             let r = a.clone();
-            Arc::new(ctx,move|ctx,args|{
+            #root::alloc::sync::Arc::new(ctx,move|ctx,args|{
                 let r = r.#{format_ident!("{a}")}(ctx,#(#init),*)
-                Ok(vec![#(#fini),*])
+                Ok(#root::alloc::vec![#(#fini),*])
             })
     }});
     quasiquote! {
@@ -65,19 +65,19 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             impl<U: 'static,E: #root::wasm_runtime_layer::backend::WasmEngine> #id<U,E> for #root::RWrapped<U,E>{
                 #(#impls)*
                 unsafe fn finalize(&self, ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>) -> #root::anyhow::Result<()>{
-                    self.all[0](ctx,vec![])?;
+                    self.all[0](ctx,#root::alloc::vec![])?;
                     Ok(())
                 }
             }
-            impl<U: 'static,E: #root::wasm_runtime_layer::backend::WasmEngine> From<Arc<dyn $id<U,E>> for #root::RWrapped<U,E>{
-                fn from(a: Arc<dyn $id<U,E>>) -> Self{
+            impl<U: 'static,E: #root::wasm_runtime_layer::backend::WasmEngine> From<#root::alloc::sync::Arc<dyn $id<U,E>> for #root::RWrapped<U,E>{
+                fn from(a: #root::alloc::sync::Arc<dyn $id<U,E>>) -> Self{
                     Self{
-                        rid: Arc::new(#root::pit_core::Interface::parse_interface(#{i.to_string()}).ok().unwrap()),
-                        all: vec![#{
+                        rid: #root::alloc::sync::Arc::new(#root::pit_core::Interface::parse_interface(#{i.to_string()}).ok().unwrap()),
+                        all: #root::alloc::vec![#{
                             let all = once(quasiquote!{
                                 let r = a.clone();
                                 unsafe{
-                                    Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
+                                    #root::alloc::sync::Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
                                 }
                             }).chain(injects);
 

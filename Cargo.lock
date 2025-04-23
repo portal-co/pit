@@ -780,12 +780,13 @@ dependencies = [
 
 [[package]]
 name = "wasm_runtime_layer"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb3c4a317e94b170cd61e5943b3f80bcc5c4052398a271e6e2118a3e63a34433"
+checksum = "38ccffca37862a8f398fe622f8dc749e0ed6056c71570b9812dce3a39ae86c6e"
 dependencies = [
  "anyhow",
  "fxhash",
+ "hashbrown 0.15.2",
  "ref-cast",
  "smallvec",
 ]
