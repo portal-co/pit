@@ -3,9 +3,9 @@ use std::{collections::BTreeSet, fs, iter::once};
 use anyhow::Context;
 use base64::Engine;
 use pit_patch::{get_interfaces, lower::Cfg};
-use waffle::{
-    copying::module::{i2x, import_fn, tree_shake, x2i, Copier, ImportBehavior, State},
-    ImportKind,
+use portal_pc_waffle::{
+    copying::module::{import_fn, tree_shake, Copier, ImportBehavior, State},
+    i2x, x2i, ImportKind,
 };
 
 const TEAVM_INTEROP_VER: &'static str = "0.10.2";
@@ -17,7 +17,7 @@ fn main() -> anyhow::Result<()> {
         "untpit" => {
             let a = args.next().context("in getting the input")?;
             let a = std::fs::read(a)?;
-            let mut m = waffle::Module::from_wasm_bytes(&a, &Default::default())?;
+            let mut m = portal_pc_waffle::Module::from_wasm_bytes(&a, &Default::default())?;
             pit_patch::tpit::wrap(&mut m)?;
             let b = args.next().context("in getting the output")?;
             std::fs::write(b, m.to_wasm_bytes()?)?;
@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
         "jigger" => {
             let a = args.next().context("in getting the input")?;
             let a = std::fs::read(a)?;
-            let mut m = waffle::Module::from_wasm_bytes(&a, &Default::default())?;
+            let mut m = portal_pc_waffle::Module::from_wasm_bytes(&a, &Default::default())?;
             pit_patch::canon::jigger(&mut m, &[])?;
             let b = loop {
                 let b = args.next().context("in getting the output")?;
@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
         "lower" => {
             let a = args.next().context("in getting the input")?;
             let a = std::fs::read(a)?;
-            let mut m = waffle::Module::from_wasm_bytes(&a, &Default::default())?;
+            let mut m = portal_pc_waffle::Module::from_wasm_bytes(&a, &Default::default())?;
             m.expand_all_funcs()?;
             let b = loop {
                 let b = args.next().context("in getting the output")?;
@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
         "embed" => {
             let a = args.next().context("in getting the input")?;
             let a = std::fs::read(a)?;
-            let mut m = waffle::Module::from_wasm_bytes(&a, &Default::default())?;
+            let mut m = portal_pc_waffle::Module::from_wasm_bytes(&a, &Default::default())?;
             m.expand_all_funcs()?;
             let b = loop {
                 let b = args.next().context("in getting the output")?;

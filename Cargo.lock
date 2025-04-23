@@ -15,6 +15,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "324e412f1771dc6c84a2a53e5c19cf92bd7ea05b5eeddb3f80c18e3473374ab4"
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
 name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -407,6 +413,25 @@ dependencies = [
  "hex",
  "itertools 0.13.0",
  "pit-core",
+]
+
+[[package]]
+name = "pit-cli"
+version = "0.3.2"
+dependencies = [
+ "anyhow",
+ "base64",
+ "nom",
+ "pit-c",
+ "pit-core",
+ "pit-patch",
+ "pit-rust-guest",
+ "pit-teavm",
+ "portal-pc-waffle",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
 ]
 
 [[package]]
