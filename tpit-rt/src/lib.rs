@@ -1,10 +1,12 @@
-use std::{
+#![no_std]
+
+use core::{
     marker::PhantomData,
     mem::forget,
     num::NonZeroU32,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc,
+        // Arc,
     },
 };
 #[repr(transparent)]
@@ -53,6 +55,6 @@ impl<D> Tpit<D> {
         return x;
     }
     pub unsafe fn summon(a: &mut u32) -> &mut Self {
-        unsafe { std::mem::transmute(a) }
+        unsafe { core::mem::transmute(a) }
     }
 }

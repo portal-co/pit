@@ -7,4 +7,4 @@ resolver="2"
 [workspace.dependencies]
 portal-pc-waffle = "^0.5"
 # waffle-ast = "0.4"
-pit-core = "^0.4"
+pit-core = "^0.4.2"

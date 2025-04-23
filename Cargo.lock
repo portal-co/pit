@@ -456,9 +456,9 @@ dependencies = [
 
 [[package]]
 name = "pit-core"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e16e6c033893a61d36e97f6b37b8af0937c5bf26e3c63a40f677bc81acb7f20"
+checksum = "36d719221ec03fe27f808b939a7a9b342e966ecc85c5d69ff3d4528b2ee5ccd1"
 dependencies = [
  "derive_more 2.0.1",
  "hex",
@@ -473,7 +473,7 @@ dependencies = [
  "anyhow",
  "hex",
  "nom 8.0.0",
- "pit-core 0.4.1",
+ "pit-core 0.4.2",
  "portal-pc-waffle",
  "sha3",
 ]
@@ -491,7 +491,7 @@ version = "0.3.2"
 dependencies = [
  "anyhow",
  "nom 8.0.0",
- "pit-core 0.4.1",
+ "pit-core 0.4.2",
  "pit-rust-guest",
  "prettyplease",
  "proc-macro2",
@@ -505,7 +505,7 @@ version = "0.3.2"
 dependencies = [
  "hex",
  "nom 8.0.0",
- "pit-core 0.4.1",
+ "pit-core 0.4.2",
  "proc-macro2",
  "quasiquote",
  "quote",
@@ -519,7 +519,7 @@ version = "0.3.2"
 dependencies = [
  "anyhow",
  "nom 8.0.0",
- "pit-core 0.4.1",
+ "pit-core 0.4.2",
  "wasm_runtime_layer",
 ]
 
