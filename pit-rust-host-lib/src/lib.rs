@@ -1,6 +1,8 @@
 #![no_std]
 #[doc(hidden)]
 pub extern crate alloc;
+#[doc(hidden)]
+pub use core;
 use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::sync::Arc;
@@ -58,6 +60,7 @@ pub fn emit_ty(a: &Arg) -> ValueType {
         _ => todo!(), // Arg::Func(f) => ValueType::FuncRef,
     }
 }
+
 pub fn emit<U: AsRef<Instance> + 'static, E: WasmEngine>(
     l: &mut Imports,
     rid: Arc<Interface>,

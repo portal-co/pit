@@ -494,6 +494,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pit-rust-host"
+version = "0.3.2"
+dependencies = [
+ "hex",
+ "nom",
+ "pit-core",
+ "pit-rust-guest",
+ "proc-macro2",
+ "quasiquote",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
 name = "pit-rust-host-lib"
 version = "0.4.0"
 dependencies = [

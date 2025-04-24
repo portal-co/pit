@@ -25,7 +25,7 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             .enumerate()
             .map(|(pi, a)| render_new_val(root, a, quasiquote! {#{format_ident!("p{pi}")}}));
         let init =
-            once(quote! {#root::wasm_runtime_layer::Value::I32(self.base as i32)}).chain(init);
+            once(quote! {#root::wasm_runtime_layer::Value::I32(self.base as #root::core::primitive::i32)}).chain(init);
         let fini = b.rets.iter().enumerate().map(|(ri, r)| {
             quasiquote! {
                 #{render_base_val(root, r, quote! {&rets[#ri]})}
@@ -35,8 +35,8 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             fn #{format_ident!("{a}")}#{render_sig(root,b,&quote! {&self},quote!{
                 ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
             })}{
-                let a = self.all[#{c+1}].clone();
-                let args = vec![#(#init),*];
+                let a = #root::core::clone::Clone::clone(&self.all[#{c+1}]);
+                let args = #root::alloc::vec![#(#init),*];
                 let mut rets = a(ctx,args);
                 return Ok((#(#fini),*))
             }
@@ -75,7 +75,7 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
                         rid: #root::alloc::sync::Arc::new(#root::pit_core::Interface::parse_interface(#{i.to_string()}).ok().unwrap()),
                         all: #root::alloc::vec![#{
                             let all = once(quasiquote!{
-                                let r = a.clone();
+                                let r = #root::core::clone::Clone::clone(&a);
                                 unsafe{
                                     #root::alloc::sync::Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
                                 }
@@ -121,7 +121,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                             #c
                         };
                         if let Arg::Resource { ty, nullable, take, ann } = b{
-                            c = quote!{Box::new(#root::W{
+                            c = quote!{#root::alloc::boxed::Box::new(#root::W{
                                 r: #root::RWrapped<U,E>::from(Arc::new(#c)),
                                 store: self.store.clone()
                             }).into()};
@@ -146,7 +146,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                         };
                         if let Arg::Resource { ty, nullable, take, ann } = b{
                             c = quote!{
-                                #root::RWrapped<U,E>::from(Compat(::std::cell::UnsafeCell::new(Some(#c)))) 
+                                #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::core::option::Option::Some(#c)))) 
                             }
                         }
                         c
@@ -167,7 +167,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
             };
             if let Arg::Resource { ty, nullable, take, ann } = b{
                     c = quote!{
-                        #root::RWrapped<U,E>::from(Compat(::std::cell::UnsafeCell::new(Some(#c)))) 
+                        #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::::core::option::Option::Some(#c)))) 
                     };
                 if !take{
                     c = quote!{&mut #c};
@@ -184,9 +184,9 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
             r.#c
         };
         if let Arg::Resource { ty, nullable, take, ann } = b{
-            c = quote!{Box::new(#root::W{
+            c = quote!{#root::alloc::boxed::Box::new(#root::W{
                 r: #root::RWrapped<U,E>::from(Arc::new(#c)),
-                store: Arc::new(#root::StoreCell{
+                store: #root::alloc::sync::Arc::new(#root::StoreCell{
                     wrapped: ::std::cell::UnsafeCell::new(#root::wasm_runtime_layer::Store::new(ctx.engine(),ctx.data().clone()))
                 })
             }).into()};
@@ -216,15 +216,15 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                 let x = unsafe{
                     &mut *(self.0.get())
                 }.take();
-                let Some(x) = x else{
-                    return Err(#root::anyhow::anyhow!("double finalized"))
+                let #root::core::option::Option::Some(x) = x else{
+                    return #root::core::result::Result::Err(#root::anyhow::anyhow!("double finalized"))
                 }
-                Ok(())
+                #root::core::result::Result::Ok(())
             }
         }
         impl From<Box<dyn #pid>> for Arc<dyn #id>{
             fn from(p: Box<dyn #pid>) -> Self{
-                return Arc::new(Compat(::std::cell::UnsafeCell::new(Some(#res::from(p)))))
+                return Arc::new(Compat(#root::core::cell::UnsafeCell::new(Some(#res::from(p)))))
             }
         }
     }
@@ -284,16 +284,16 @@ pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
 pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
     match p {
         Arg::I32 => quote! {
-            u32
+            #root::core::primitive::u32
         },
         Arg::I64 => quote! {
-            u64
+            #root::core::primitive::u64
         },
         Arg::F32 => quote! {
-            f32
+            #root::core::primitive::f32
         },
         Arg::F64 => quote! {
-            f64
+            #root::core::primitive::f64
         },
         Arg::Resource {
             ty,
@@ -306,10 +306,10 @@ pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
             },
             _ => {
                 let a = quasiquote! {
-                    ::std::sync::Arc<#root::Wrapped<U,E>>
+                    #root::alloc::sync::Arc<#root::Wrapped<U,E>>
                 };
                 if *nullable {
-                    quote! {Option<#a>}
+                    quote! {#root::core::option::Option<#a>}
                 } else {
                     a
                 }
@@ -353,9 +353,9 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
             };
             if !matches!(ty, ResTy::None) {
                 quasiquote!{
-                    let t = match t.downcast::<'_,'_,                ::std::sync::Arc<#root::Wrapped<U,E>>,U,E>(ctx){
-                            Ok(t) => Arc::new(t.clone()),
-                            Err(_) =>                     #root::anyhow::bail!("invalid param")
+                    let t = match t.downcast::<'_,'_,                #root::alloc::sync::Arc<#root::Wrapped<U,E>>,U,E>(ctx){
+                        #root::core::result::Result::Ok(t) => Arc::new(t.clone()),
+                        #root::core::result::Result::Err(_) =>                     #root::anyhow::bail!("invalid param")
                         }
 
                 }.to_tokens(&mut a);
@@ -406,9 +406,9 @@ pub fn render_new_val(root: &TokenStream, p: &Arg, t: TokenStream) -> TokenStrea
                         #{match ty{
                             ResTy::None => quote! {                    #root::wasm_runtime_layer::ExternRef::new(ctx,t)},
                             _ => quote! {
-                                match t.to_any().downcast_ref::<::std::sync::Arc<#root::Wrapped<U,E>>>(){
-                                    None =>                     #root::wasm_runtime_layer::ExternRef::new(ctx,t),
-                                    Some(t) => #root::wasm_runtime_layer::ExternRef::new(ctx,t.clone()),
+                                match t.to_any().downcast_ref::<#root::alloc::sync::Arc<#root::Wrapped<U,E>>>().cloned(){
+                                    #root::core::option::Option::None =>                     #root::wasm_runtime_layer::ExternRef::new(ctx,t),
+                                    #root::core::option::Option::Some(t) => #root::wasm_runtime_layer::ExternRef::new(ctx,t),
                                 }
                             }
                         }}
