@@ -5,6 +5,8 @@ use proc_macro2::{Span, TokenStream};
 use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
 use syn::{spanned::Spanned, Ident, Index};
+#[derive(Default)]
+#[non_exhaustive]
 pub struct Opts {
     pub guest: Option<pit_rust_guest::Opts>,
 }
@@ -123,7 +125,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                         if let Arg::Resource { ty, nullable, take, ann } = b{
                             c = quote!{#root::alloc::boxed::Box::new(#root::W{
                                 r: #root::RWrapped<U,E>::from(Arc::new(#c)),
-                                store: self.store.clone()
+                                store: #root::core::clone::clone(&self.store)
                             }).into()};
                             if !take{
                                 c = quote!{&mut #c};
@@ -187,7 +189,9 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
             c = quote!{#root::alloc::boxed::Box::new(#root::W{
                 r: #root::RWrapped<U,E>::from(Arc::new(#c)),
                 store: #root::alloc::sync::Arc::new(#root::StoreCell{
-                    wrapped: ::std::cell::UnsafeCell::new(#root::wasm_runtime_layer::Store::new(ctx.engine(),ctx.data().clone()))
+                    wrapped: #root::core::cell::UnsafeCell::new(#root::wasm_runtime_layer::Store::new(ctx.engine(),match ctx.data(){
+                        d => #root::core::clone::Clone::clone(d),
+                    }))
                 })
             }).into()};
         }
@@ -206,11 +210,11 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
         }
     });
     quasiquote!{
-        struct Compat<T>(::std::cell::UnsafeCell<Option<T>>);
-        impl<U: 'static + Clone,E: #root::wasm_runtime_layer::backend::WasmEngine> #pid for #root::W<#root::RWrapped<U,E>,U,E>{
+        struct Compat<T>(#root::core::cell::UnsafeCell<Option<T>>);
+        impl<U: 'static + #root::core::clone::Clone,E: #root::wasm_runtime_layer::backend::WasmEngine> #pid for #root::W<#root::RWrapped<U,E>,U,E>{
             #(#impl_guest)*
         }
-        impl<U: 'static + Clone,E: #root::wasm_runtime_layer::backend::WasmEngine, X: #pid> #id<U,E> for Compat<X>{
+        impl<U: 'static + #root::core::clone::Clone,E: #root::wasm_runtime_layer::backend::WasmEngine, X: #pid> #id<U,E> for Compat<X>{
             #(#impl_host)*
             unsafe fn finalize(&self, ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>) -> #root::anyhow::Result<()>{
                 let x = unsafe{

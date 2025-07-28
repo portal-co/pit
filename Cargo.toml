@@ -1,5 +1,5 @@
 [workspace]
-members=[ "pit-basic", "pit-c", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host-lib", "pit-teavm",  "tpit-rt","pit-cli","pit-rust-host"]
+members=[ "pit-basic", "pit-c", "pit-patch", "pit-rust-externref", "pit-rust-generator", "pit-rust-guest", "pit-rust-host-lib", "pit-teavm",  "tpit-rt","pit-cli","pit-rust-host","pit-wit-bridge"]
 resolver="2"
 
 # "pit-core","pit-rust-host","pit-wit-bridge", "pit-cli",
@@ -8,3 +8,4 @@ resolver="2"
 portal-pc-waffle = "^0.5"
 # waffle-ast = "0.4"
 pit-core = "^0.4.2"
+instability = "0.3.7"
