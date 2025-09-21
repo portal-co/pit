@@ -20,5 +20,5 @@ resolver = "2"
 [workspace.dependencies]
 portal-pc-waffle = "^0.5"
 # waffle-ast = "0.4"
-pit-core = "^0.4.2"
+pit-core = { version = "^0.4.2", git = "https://github.com/portal-co/pit-core.git" }
 instability = "0.3.7"
