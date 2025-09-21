@@ -1,6 +1,19 @@
 [workspace]
-members=[ "crates/pit-basic", "crates/pit-c", "crates/pit-patch", "crates/pit-rust-externref", "crates/pit-rust-generator", "crates/pit-rust-guest", "crates/pit-rust-host-lib", "crates/pit-teavm",  "crates/tpit-rt","crates/pit-cli","crates/pit-rust-host","crates/pit-wit-bridge"]
-resolver="2"
+members = [
+    "crates/pit-basic",
+    "crates/pit-c",
+    "crates/pit-patch",
+    "crates/pit-rust-externref",
+    "crates/pit-rust-generator",
+    "crates/pit-rust-guest",
+    "crates/pit-rust-host-lib",
+    "crates/pit-teavm",
+    "crates/tpit-rt",
+    "crates/pit-cli",
+    "crates/pit-rust-host",
+    "crates/pit-wit-bridge",
+]
+resolver = "2"
 
 # "pit-core","pit-rust-host","pit-wit-bridge", "pit-cli",
 
