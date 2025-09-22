@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context};
 use pit_rust_guest::Opts;
 use quote::quote;
+use syn::parse_quote;
 fn main() -> anyhow::Result<()>{
     let mut a = std::env::args();
     a.next();
@@ -16,7 +17,7 @@ fn main() -> anyhow::Result<()>{
     };
 
     let v = pit_rust_guest::render(&x, &src);
-    let v = prettyplease::unparse(&syn::parse_file(&v.to_string())?);
+    let v = prettyplease::unparse(&parse_quote!(#v));
     let Some(dst) = a.next() else{
         println!("{v}");
         return Ok(());
