@@ -2,8 +2,8 @@
 name = "pit-cli"
 version = "0.4.0"
 edition = "2021"
-license = "CC0-1.0"
-description = "Portal Interface Types"
+license.workspace = true # = "CC0-1.0"
+description.workspace = true # = "Portal Interface Types for WebAssembly"
 
 [dependencies]
 anyhow = "1.0.86"

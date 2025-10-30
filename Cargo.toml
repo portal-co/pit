@@ -17,6 +17,10 @@ resolver = "2"
 
 # "pit-core","pit-rust-host","pit-wit-bridge", "pit-cli",
 
+[workspace.package]
+license = "CC0-1.0"
+description = "Portal Interface Types"
+
 [workspace.dependencies]
 portal-pc-waffle = "^0.5"
 # waffle-ast = "0.4"
