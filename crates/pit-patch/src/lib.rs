@@ -1,24 +1,22 @@
 #![no_std]
 extern crate alloc;
 use alloc::{
-    collections::{BTreeMap, BTreeSet}, vec::Vec,
-
+    collections::{BTreeMap, BTreeSet},
+    vec::Vec,
 };
-
 use anyhow::Context;
 use pit_core::{Arg, Interface, Sig};
 // use util::tfree;
+use crate::util::add_op;
 use portal_pc_waffle::{
     util::new_sig, ExportKind, FuncDecl, FunctionBody, ImportKind, Module, SignatureData,
     TableData, Type,
 };
-use crate::util::add_op;
-
-pub mod util;
 pub mod canon;
 pub mod lower;
 pub mod tpit;
 pub mod tutils;
+pub mod util;
 pub fn get_interfaces(m: &Module) -> anyhow::Result<Vec<Interface>> {
     let c = m
         .custom_sections
@@ -31,6 +29,5 @@ pub fn get_interfaces(m: &Module) -> anyhow::Result<Vec<Interface>> {
             .map_err(|e: nom::Err<nom::error::Error<&str>>| anyhow::anyhow!("invalid pit"))?;
         is.push(i);
     }
-
     return Ok(is);
 }

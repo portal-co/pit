@@ -1,12 +1,12 @@
-use core::iter::once;
-use alloc::{boxed::Box, vec};
-use alloc::vec::Vec;
-
-use portal_pc_waffle::op_traits::op_outputs;
-use portal_pc_waffle::{SignatureData, Type};
-use portal_pc_waffle::{util::new_sig, Block, BlockTarget, Func, FunctionBody, Module, Operator, Table, Value};
-
 use crate::util::add_op;
+use alloc::vec::Vec;
+use alloc::{boxed::Box, vec};
+use core::iter::once;
+use portal_pc_waffle::op_traits::op_outputs;
+use portal_pc_waffle::{
+    util::new_sig, Block, BlockTarget, Func, FunctionBody, Module, Operator, Table, Value,
+};
+use portal_pc_waffle::{SignatureData, Type};
 pub trait Builder {
     type Result;
     fn build(
@@ -24,7 +24,6 @@ pub enum Expr {
 }
 impl Builder for Expr {
     type Result = portal_pc_waffle::Value;
-
     fn build(
         &mut self,
         mo: &mut portal_pc_waffle::Module,
@@ -189,7 +188,10 @@ pub fn talloc(m: &mut Module, t: Table, aux: &[Table]) -> anyhow::Result<Func> {
         o = d;
         f.add_op(o, Operator::TableSet { table_index: *a }, &[idx, *v], &[]);
     }
-    f.set_terminator(o, portal_pc_waffle::Terminator::Return { values: vec![idx] });
+    f.set_terminator(
+        o,
+        portal_pc_waffle::Terminator::Return { values: vec![idx] },
+    );
     let mut e = Expr::Bind(
         Operator::TableGrow { table_index: t },
         vec![
@@ -247,10 +249,15 @@ pub fn talloc(m: &mut Module, t: Table, aux: &[Table]) -> anyhow::Result<Func> {
         o = d;
         f.add_op(o, Operator::TableSet { table_index: *a }, &[idx, *v], &[]);
     }
-    f.set_terminator(o, portal_pc_waffle::Terminator::Return { values: vec![idx] });
-    return Ok(m
-        .funcs
-        .push(portal_pc_waffle::FuncDecl::Body(sig, alloc::format!("talloc"), f)));
+    f.set_terminator(
+        o,
+        portal_pc_waffle::Terminator::Return { values: vec![idx] },
+    );
+    return Ok(m.funcs.push(portal_pc_waffle::FuncDecl::Body(
+        sig,
+        alloc::format!("talloc"),
+        f,
+    )));
 }
 pub fn tfree(m: &mut Module, t: Table, aux: &[Table]) -> anyhow::Result<Func> {
     let ety = m.tables[t].ty.clone();
@@ -266,7 +273,7 @@ pub fn tfree(m: &mut Module, t: Table, aux: &[Table]) -> anyhow::Result<Func> {
                 .into_iter()
                 .chain(atys.into_iter())
                 .collect(),
-                shared: true,
+            shared: true,
         },
     );
     let mut f = FunctionBody::new(m, sig);
@@ -286,7 +293,9 @@ pub fn tfree(m: &mut Module, t: Table, aux: &[Table]) -> anyhow::Result<Func> {
     );
     let (_, o) = e.build(m, &mut f, o)?;
     f.set_terminator(o, portal_pc_waffle::Terminator::Return { values: r });
-    return Ok(m
-        .funcs
-        .push(portal_pc_waffle::FuncDecl::Body(sig, alloc::format!("tfree"), f)));
+    return Ok(m.funcs.push(portal_pc_waffle::FuncDecl::Body(
+        sig,
+        alloc::format!("tfree"),
+        f,
+    )));
 }

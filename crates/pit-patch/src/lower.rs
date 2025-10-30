@@ -4,11 +4,10 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
+use anyhow::Context;
 use core::iter::once;
 use core::mem::{replace, take};
 use portal_pc_waffle::copying::fcopy::{obf_mod, DontObf, Obfuscate};
-
-use anyhow::Context;
 use portal_pc_waffle::{
     entity::EntityRef, util::new_sig, ExportKind, Func, FuncDecl, FunctionBody, HeapType, Import,
     ImportKind, Module, Operator, SignatureData, StorageType, TableData, Type, ValueDef,
@@ -19,7 +18,6 @@ use portal_pc_waffle::{
 //     fcopy::{obf_mod, DontObf, Obfuscate},
 //     Builder, Expr,
 // };
-
 use crate::canon::canon;
 use crate::util::add_op;
 pub fn patch_ty(t: &mut Type) {
@@ -244,7 +242,6 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                     }
                 })
                 .context("in getting the index")?;
-
             if i.name.ends_with(&format!("~{root}")) {
                 if let ImportKind::Func(f) = i.kind {
                     let fs = m.funcs[f].sig();
@@ -254,7 +251,6 @@ pub fn instantiate(m: &mut Module, cfg: &Cfg) -> anyhow::Result<()> {
                     let mut values: Vec<portal_pc_waffle::Value> =
                         b.blocks[k].params.iter().map(|a| a.1).collect();
                     let tys = b.blocks[k].params.iter().map(|a| a.0).collect::<Vec<_>>();
-
                     // let mut e = Expr::Bind(
                     //     Operator::I32Add,
                     //     vec![

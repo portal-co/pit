@@ -1,11 +1,10 @@
-use std::iter::once;
-
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::TokenStream;
 use quasiquote::quasiquote;
 use quote::{format_ident, quote};
 use sha3::Digest;
 use std::io::Write;
+use std::iter::once;
 pub struct Opts {
     pub root: TokenStream,
     pub salt: Vec<u8>,
@@ -241,7 +240,7 @@ pub fn render_ty(
                     ResTy::This => quasiquote! {
                         #root::externref::Resource<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
                     },
-                    _ => todo!()
+                    _ => todo!(),
                 };
                 let ty = if *nullable {
                     quote! {Option<#ty>}
@@ -265,7 +264,7 @@ pub fn render_ty(
                     ResTy::This => quasiquote! {
                         #root::tpit_rt::Tpit<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
                     },
-                    _ => todo!()
+                    _ => todo!(),
                 };
                 let mut ty = if *take {
                     ty
@@ -278,7 +277,6 @@ pub fn render_ty(
                 ty
             }
         }
-        _ => todo!()
-        // Arg::Func(_) => todo!()
+        _ => todo!(), // Arg::Func(_) => todo!()
     }
 }

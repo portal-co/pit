@@ -1,5 +1,4 @@
 #![no_std]
-
 use core::{
     marker::PhantomData,
     mem::forget,
@@ -14,7 +13,6 @@ pub struct Tpit<D> {
     ptr: Option<NonZeroU32>,
     phantom: PhantomData<D>,
 }
-
 impl<D> Drop for Tpit<D> {
     fn drop(&mut self) {
         #[link(wasm_import_module = "tpit")]
@@ -22,7 +20,6 @@ impl<D> Drop for Tpit<D> {
             fn drop(a: u32);
             fn void(a: u32);
         }
-
         if let Some(p) = self.ptr {
             unsafe {
                 drop(p.into());

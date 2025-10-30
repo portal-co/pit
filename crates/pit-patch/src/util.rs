@@ -3,28 +3,24 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+use anyhow::Context;
 use core::iter::once;
 use core::mem::{replace, take};
-
-use anyhow::Context;
 use pit_core::{Arg, ResTy};
 use portal_pc_waffle::{
     util::new_sig, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody, Import,
     ImportKind, Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
 };
-pub fn add_op(f: &mut FunctionBody, args: &[Value], types: &[Type], op: Operator) -> Value{
+pub fn add_op(f: &mut FunctionBody, args: &[Value], types: &[Type], op: Operator) -> Value {
     let args = f.arg_pool.from_iter(args.iter().cloned());
     let types = f.type_pool.from_iter(types.iter().cloned());
-    f.values.push(portal_pc_waffle::ValueDef::Operator(op, args, types))
+    f.values
+        .push(portal_pc_waffle::ValueDef::Operator(op, args, types))
 }
 // use waffle_ast::{add_op, results_ref_2, Builder, Expr};
-
 use crate::get_interfaces;
-
 // pub use waffle_ast::tutils::*;
-
 // use portal_pc_waffle::{util::new_sig, Module};
-
 pub fn to_waffle_type(t: &pit_core::Arg, tpit: bool) -> portal_pc_waffle::Type {
     match t {
         pit_core::Arg::I32 => portal_pc_waffle::Type::I32,
@@ -147,7 +143,7 @@ pub fn canon(m: &mut Module, i: &pit_core::Interface, destruct: Option<Func>, na
                 .iter()
                 .map(|a| to_waffle_type_in(a, false, m))
                 .collect(),
-                shared: true,
+            shared: true,
         };
         let sig = new_sig(m, sig);
         let mut f = FunctionBody::new(&m, sig);

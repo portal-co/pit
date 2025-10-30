@@ -1,19 +1,18 @@
 #![no_std]
 #[doc(hidden)]
 pub extern crate alloc;
-#[doc(hidden)]
-pub use core;
 use alloc::borrow::ToOwned;
+use alloc::format;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec;
-use alloc::format;
 use alloc::vec::Vec;
+#[doc(hidden)]
+pub use core;
 use core::{
     cell::UnsafeCell,
     iter::{empty, once},
 };
-
 use pit_core::{Arg, Interface};
 use wasm_runtime_layer::{
     backend::WasmEngine, AsContext, AsContextMut, Extern, ExternRef, Func, FuncType, Imports,
@@ -60,7 +59,6 @@ pub fn emit_ty(a: &Arg) -> ValueType {
         _ => todo!(), // Arg::Func(f) => ValueType::FuncRef,
     }
 }
-
 pub fn emit<U: AsRef<Instance> + 'static, E: WasmEngine>(
     l: &mut Imports,
     rid: Arc<Interface>,
@@ -226,7 +224,6 @@ impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U, E> {
 pub type RWrapped<U, E> = ::alloc::sync::Arc<Wrapped<U, E>>;
 pub extern crate anyhow;
 pub extern crate wasm_runtime_layer;
-
 pub struct W<X, U: 'static, E: WasmEngine> {
     pub r: X,
     pub store: Arc<StoreCell<U, E>>,

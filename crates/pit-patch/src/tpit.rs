@@ -1,31 +1,26 @@
+use crate::get_interfaces;
+use crate::tutils::{talloc, tfree};
+use crate::util::{add_op, to_waffle_sig, waffle_funcs};
 use alloc::borrow::ToOwned;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
+use anyhow::Context;
 use core::{
     iter::once,
     mem::{replace, take},
 };
-
-use anyhow::Context;
 use pit_core::{Arg, ResTy};
 use portal_pc_waffle::{
     util::*, Block, BlockTarget, Export, ExportKind, Func, FuncDecl, FunctionBody, ImportKind,
     Module, Operator, SignatureData, Table, TableData, Type, Value, WithNullable,
 };
-
-use crate::get_interfaces;
-use crate::tutils::{talloc, tfree};
-use crate::util::{add_op, to_waffle_sig, waffle_funcs};
-
 // use waffle_ast::{add_op, results_ref_2};
-
 // use crate::{
 //     get_interfaces,
 //     util::{talloc, tfree, to_waffle_sig, waffle_funcs},
 // };
-
 pub fn shim(
     retref: bool,
     f: &mut FunctionBody,
@@ -132,7 +127,6 @@ pub fn shim(
         v = a;
     }
     // }
-
     match (take, retref) {
         (true, true) => {
             v = add_op(
@@ -305,8 +299,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = import.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             import.name = a;
             if let ImportKind::Func(f) = &mut import.kind {
-                if let SignatureData::Func { params, returns,.. } =
-                    m.signatures[m.funcs[*f].sig()].clone()
+                if let SignatureData::Func {
+                    params, returns, ..
+                } = m.signatures[m.funcs[*f].sig()].clone()
                 {
                     let p = params;
                     let p = new_sig(
@@ -356,8 +351,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
         if let Some(a) = export.name.strip_suffix(".tpit-res").map(|a| a.to_owned()) {
             export.name = a;
             if let ExportKind::Func(f) = &mut export.kind {
-                if let SignatureData::Func { params, returns,.. } =
-                    m.signatures[m.funcs[*f].sig()].clone()
+                if let SignatureData::Func {
+                    params, returns, ..
+                } = m.signatures[m.funcs[*f].sig()].clone()
                 {
                     let p = params;
                     let p = new_sig(
@@ -411,8 +407,9 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                 match import.name.strip_prefix("~") {
                     Some(a) => {
                         if let ImportKind::Func(f) = &mut import.kind {
-                            if let SignatureData::Func { params, returns,.. } =
-                                m.signatures[m.funcs[*f].sig()].clone()
+                            if let SignatureData::Func {
+                                params, returns, ..
+                            } = m.signatures[m.funcs[*f].sig()].clone()
                             {
                                 let p = params;
                                 ss.insert(a.to_owned(), p.clone());
@@ -463,7 +460,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             .context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
-                        let SignatureData::Func { params, returns,.. } = p else {
+                        let SignatureData::Func {
+                            params, returns, ..
+                        } = p
+                        else {
                             continue;
                         };
                         let p = new_sig(
@@ -495,7 +495,7 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                                         }
                                     })
                                     .collect(),
-                                    shared: true,
+                                shared: true,
                             },
                         );
                         let p = m
@@ -563,7 +563,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                             export.name = format!("pit/{}/~{a}", i.rid_str());
                             let p = to_waffle_sig(m, &x, false);
                             let p = m.signatures[p].clone();
-                            let SignatureData::Func { params, returns,.. } = p else {
+                            let SignatureData::Func {
+                                params, returns, ..
+                            } = p
+                            else {
                                 continue;
                             };
                             let p = new_sig(
@@ -626,7 +629,10 @@ pub fn wrap(m: &mut Module) -> anyhow::Result<()> {
                         let x = i.methods.get(b).context("in getting the method")?;
                         let p = to_waffle_sig(m, x, false);
                         let p = m.signatures[p].clone();
-                        let SignatureData::Func { params, returns,.. } = p else {
+                        let SignatureData::Func {
+                            params, returns, ..
+                        } = p
+                        else {
                             continue;
                         };
                         let p = new_sig(

@@ -1,7 +1,6 @@
 pub mod ffi;
-use std::sync::Arc;
-
 pub use ffi::*;
+use std::sync::Arc;
 #[cfg(feature = "ic-stable-structures")]
 pub mod ic;
 macro_rules! buffer_slice_impl {
@@ -10,11 +9,9 @@ macro_rules! buffer_slice_impl {
             fn read8(&mut self, p0: u64) -> (u32) {
                 return self[p0 as usize].into();
             }
-
             fn write8(&mut self, p0: u64, p1: u32) -> () {
                 self[p0 as usize] = (p1 & 0xff) as u8;
             }
-
             fn size(&mut self) -> (u64) {
                 return self.len().try_into().unwrap();
             }
@@ -30,11 +27,7 @@ macro_rules! buffer_ro_slice_impl {
             fn read8(&mut self, p0: u64) -> (u32) {
                 return self[p0 as usize].into();
             }
-
-            fn write8(&mut self, p0: u64, p1: u32) -> () {
-                
-            }
-
+            fn write8(&mut self, p0: u64, p1: u32) -> () {}
             fn size(&mut self) -> (u64) {
                 return self.len().try_into().unwrap();
             }
@@ -83,20 +76,20 @@ pub fn copy_slice_out<'a, 'b>(
         *c = (b.read8(bi + (i as u64)) & 0xff) as u8;
     }
 }
-pub struct Slice<T>{
+pub struct Slice<T> {
     pub wrapped: T,
     pub begin: u64,
-    pub size: u64
+    pub size: u64,
 }
-impl<T: R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d> R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d for Slice<T>{
+impl<T: R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d>
+    R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d for Slice<T>
+{
     fn read8(&mut self, p0: u64) -> (u32) {
         self.wrapped.read8(p0 + self.begin)
     }
-
     fn size(&mut self) -> (u64) {
         self.size
     }
-
     fn write8(&mut self, p0: u64, p1: u32) -> () {
         self.wrapped.write8(p0 + self.begin, p1)
     }

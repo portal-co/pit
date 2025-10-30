@@ -1,11 +1,9 @@
+use itertools::Itertools;
+use pit_core::{Arg, Interface, ResTy, Sig};
 use std::{
     collections::{BTreeMap, BTreeSet},
     iter::once,
 };
-
-use itertools::Itertools;
-use pit_core::{Arg, Interface, ResTy, Sig};
-
 pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
     let generics: u32 = i
         .ann
@@ -83,66 +81,18 @@ pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
                 .join(",");
             n = format!("[{n}]");
             let rns = a
-            .rets
-            .iter()
-            .enumerate()
-            .map(|(a, _)| format!("r{a}"))
-            .collect::<Vec<_>>()
-            .join(",");
-        let rvs = a
-            .rets
-            .iter()
-            .enumerate()
-            .map(|(a, b)| {
-                let mut c = format!("r{a}");
-                if let Arg::Resource {
-                    ty,
-                    nullable,
-                    take,
-                    ann,
-                } = b
-                {
-                    match ty {
-                        // ResTy::None  if !ann.iter().any(|a|a.name == "instance") => {}
-                        _ => {
-                            // let rid = match ty {
-                            //     ResTy::None => todo!(),
-                            //     ResTy::Of(a) => *a,
-                            //     ResTy::This => i.rid(),
-                            // };
-                            // let rid = hex::encode(rid);
-                            let d = emit_ty(
-                                b,
-                                i.rid_str().as_str(),
-                                &FFIStatus::HighLevel { generics },
-                            );
-                            c = format!("summon[Handler[{d}]].fromHandle({c})");
-                        }
-                    }
-                }
-                c
-            })
-            .collect::<Vec<_>>()
-            .join(",");
-        let s = format!(
-            r#"
-    given {name}{genericsStr}: {pkg}.{name}{n} = new {pkg}.{name}{n}{{
-        def {name}{} = {{
-            @Import(name=".{name}@{}",module="tpit") @native def go {};
-            return go(me.handle,{}) match{{
-                case ({rns}) => ({rvs})
-            }};
-        }};
-    }};
-    "#,
-            emit_sig(a, None, "me: Impl,", &FFIStatus::HighLevel { generics: 0 }),
-            a.to_string(),
-            emit_sig(a, None, "handle: Int,", &FFIStatus::FFI),
-            a.params
+                .rets
+                .iter()
+                .enumerate()
+                .map(|(a, _)| format!("r{a}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            let rvs = a
+                .rets
                 .iter()
                 .enumerate()
                 .map(|(a, b)| {
-                    let mut c = format!("_{a}");
+                    let mut c = format!("r{a}");
                     if let Arg::Resource {
                         ty,
                         nullable,
@@ -151,7 +101,7 @@ pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
                     } = b
                     {
                         match ty {
-                            // ResTy::None if !ann.iter().any(|a|a.name == "instance")=> {}
+                            // ResTy::None  if !ann.iter().any(|a|a.name == "instance") => {}
                             _ => {
                                 // let rid = match ty {
                                 //     ResTy::None => todo!(),
@@ -164,15 +114,63 @@ pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
                                     i.rid_str().as_str(),
                                     &FFIStatus::HighLevel { generics },
                                 );
-                                c = format!("summon[Handler[{d}]].handleOf({c})")
+                                c = format!("summon[Handler[{d}]].fromHandle({c})");
                             }
                         }
                     }
                     c
                 })
                 .collect::<Vec<_>>()
-                .join(",")
-        );
+                .join(",");
+            let s = format!(
+                r#"
+    given {name}{genericsStr}: {pkg}.{name}{n} = new {pkg}.{name}{n}{{
+        def {name}{} = {{
+            @Import(name=".{name}@{}",module="tpit") @native def go {};
+            return go(me.handle,{}) match{{
+                case ({rns}) => ({rvs})
+            }};
+        }};
+    }};
+    "#,
+                emit_sig(a, None, "me: Impl,", &FFIStatus::HighLevel { generics: 0 }),
+                a.to_string(),
+                emit_sig(a, None, "handle: Int,", &FFIStatus::FFI),
+                a.params
+                    .iter()
+                    .enumerate()
+                    .map(|(a, b)| {
+                        let mut c = format!("_{a}");
+                        if let Arg::Resource {
+                            ty,
+                            nullable,
+                            take,
+                            ann,
+                        } = b
+                        {
+                            match ty {
+                                // ResTy::None if !ann.iter().any(|a|a.name == "instance")=> {}
+                                _ => {
+                                    // let rid = match ty {
+                                    //     ResTy::None => todo!(),
+                                    //     ResTy::Of(a) => *a,
+                                    //     ResTy::This => i.rid(),
+                                    // };
+                                    // let rid = hex::encode(rid);
+                                    let d = emit_ty(
+                                        b,
+                                        i.rid_str().as_str(),
+                                        &FFIStatus::HighLevel { generics },
+                                    );
+                                    c = format!("summon[Handler[{d}]].handleOf({c})")
+                                }
+                            }
+                        }
+                        c
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",")
+            );
             match exp {
                 Exposition::Import => {
                     return s;
@@ -297,7 +295,7 @@ pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
                 def create(r: R{}{qs}): Int = {{
                     var x = 0
                     while all.contains(x){{
-                        x = x + 1   
+                        x = x + 1
                     }}
                     all.addOne((x,r))
                     return x
@@ -636,12 +634,12 @@ pub fn emit_ty<'a>(a: &Arg, rid: impl Into<Option<&'a str>>, ffi: &FFIStatus) ->
                         } else {
                             format!("Int")
                         }
-                    },
-                    _ => todo!()
+                    }
+                    _ => todo!(),
                 }
             }
         },
-        _ => todo!()
+        _ => todo!(),
     }
 }
 pub fn emit_sig<'a>(

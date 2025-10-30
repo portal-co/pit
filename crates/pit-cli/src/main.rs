@@ -1,5 +1,3 @@
-use std::{collections::BTreeSet, fs, iter::once};
-
 use anyhow::Context;
 use base64::Engine;
 use pit_patch::{get_interfaces, lower::Cfg};
@@ -7,9 +5,8 @@ use portal_pc_waffle::{
     copying::module::{import_fn, tree_shake, Copier, ImportBehavior, State},
     i2x, x2i, ImportKind,
 };
-
+use std::{collections::BTreeSet, fs, iter::once};
 const TEAVM_INTEROP_VER: &'static str = "0.10.2";
-
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args();
     args.next();
@@ -176,7 +173,7 @@ fn main() -> anyhow::Result<()> {
                 anyhow::bail!("invalid interface");
             };
             // let mut pkg = format!("pc.portal.pit.guest");
-            // let mut binders = pit_teavm::Binders::default();            
+            // let mut binders = pit_teavm::Binders::default();
             let mut pkg = format!("pc.portal.pit.guest");
             let mut binders = pit_teavm::Binders::default();
             let mut opts = pit_rust_guest::Opts {
@@ -240,10 +237,8 @@ fn main() -> anyhow::Result<()> {
             edition = "2021"
             license = "CC0-1.0"
             description = "Automatically generated"
-
             [dependencies]
             {}
-
             [package.metadata.bazel]
             additive_build_file_content = """
             {bazel_cc}
@@ -256,7 +251,6 @@ fn main() -> anyhow::Result<()> {
             }))?;
             std::fs::write(format!("{b}/BUILD.bazel"), format!(r#"
             package(default_visibility = ["//visibility:public"])
-
             load("@rules_rust//rust:defs.bzl", "rust_library")
             load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_binary", "scala_test")
             {bazel_cc}
@@ -285,7 +279,6 @@ fn main() -> anyhow::Result<()> {
             // https://mvnrepository.com/artifact/org.teavm/teavm-interop
             ThisBuild / scalaVersion := "3.3.3"
             libraryDependencies += "org.teavm" % "teavm-interop" % "{TEAVM_INTEROP_VER}"
-
             "#))?;
             std::fs::write(format!("{b}/CMakeLists.txt"), format!(r#"
             add_library(r{rid} STATIC R{rid}.c)

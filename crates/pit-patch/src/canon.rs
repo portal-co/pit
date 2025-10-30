@@ -1,28 +1,24 @@
+use crate::tutils::{talloc, tfree};
 use alloc::borrow::ToOwned;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::format;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+use anyhow::Context;
 use core::iter::once;
 use core::mem::{replace, take};
-use portal_pc_waffle::util::results_ref_2;
-use portal_pc_waffle::{HeapType, WithMutablility};
-
-use anyhow::Context;
 use pit_core::Interface;
+use portal_pc_waffle::util::results_ref_2;
 use portal_pc_waffle::{
     entity::EntityRef, util::new_sig, BlockTarget, Export, ExportKind, Func, FuncDecl,
     FunctionBody, Import, ImportKind, Module, Operator, SignatureData, TableData, Type,
     WithNullable,
 };
+use portal_pc_waffle::{HeapType, WithMutablility};
 use sha3::{Digest, Sha3_256};
-
-use crate::tutils::{talloc, tfree};
 // use waffle_ast::{results_ref_2, Builder, Expr};
-
 // use crate::util::{talloc, tfree};
-
 pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
     let mut xs = vec![];
     for i in m.imports.iter() {
@@ -191,7 +187,12 @@ pub fn canon(m: &mut Module, rid: &str, target: &str) -> anyhow::Result<()> {
                                         nullable: true,
                                     })],
                                 );
-                                b.add_op(k, Operator::Call { function_index: ta }, &[a], &[Type::I32])
+                                b.add_op(
+                                    k,
+                                    Operator::Call { function_index: ta },
+                                    &[a],
+                                    &[Type::I32],
+                                )
                             };
                             let a = b.add_op(k, Operator::I32Mul, &[v, a], &[Type::I32]);
                             let c = b.add_op(

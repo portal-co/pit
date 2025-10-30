@@ -1,8 +1,6 @@
-use std::iter::once;
-
 use itertools::Itertools;
 use pit_core::{Arg, Interface, ResTy};
-
+use std::iter::once;
 pub fn cify(i: &Interface) -> String {
     let rid = i.rid_str();
     let iface = i
@@ -204,9 +202,9 @@ pub fn cty(i: &Interface, t: &Arg, ffi_kind: &FFIKind) -> String {
                 pit_core::ResTy::None => format!("handle_t"),
                 pit_core::ResTy::Of(a) => format!("R{}", hex::encode(a)),
                 pit_core::ResTy::This => format!("R{}", i.rid_str()),
-                _ => todo!()
+                _ => todo!(),
             },
         },
-        _ => todo!()
+        _ => todo!(),
     }
 }

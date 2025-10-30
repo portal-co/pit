@@ -1,9 +1,8 @@
-use std::iter::once;
-
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::{Span, TokenStream};
 use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
+use std::iter::once;
 use syn::{spanned::Spanned, Ident, Index};
 #[derive(Default)]
 #[non_exhaustive]
@@ -82,7 +81,6 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
                                     #root::alloc::sync::Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
                                 }
                             }).chain(injects);
-
                             quote!{
                                 #(#all),*
                             }
@@ -92,12 +90,17 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             }
             #{match opts.guest.as_ref(){
                 None=>quote!{},
-                Some(g) => proxy(root,i,opts,g), 
+                Some(g) => proxy(root,i,opts,g),
             }}
         }
     }
 }
-pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest::Opts) -> TokenStream{
+pub fn proxy(
+    root: &TokenStream,
+    i: &Interface,
+    opts: &Opts,
+    g: &pit_rust_guest::Opts,
+) -> TokenStream {
     let id = format_ident!("B{}", i.rid_str());
     let pid = format_ident!("R{}", i.rid_str());
     let root2 = &g.root;
@@ -148,7 +151,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                         };
                         if let Arg::Resource { ty, nullable, take, ann } = b{
                             c = quote!{
-                                #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::core::option::Option::Some(#c)))) 
+                                #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::core::option::Option::Some(#c))))
                             }
                         }
                         c
@@ -158,7 +161,6 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                     }
                 })
             };
-
         }
     });
     let impl_host = i.methods.iter().enumerate().map(|(c, (a, b))| {
@@ -169,7 +171,7 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
             };
             if let Arg::Resource { ty, nullable, take, ann } = b{
                     c = quote!{
-                        #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::::core::option::Option::Some(#c)))) 
+                        #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::::core::option::Option::Some(#c))))
                     };
                 if !take{
                     c = quote!{&mut #c};
@@ -204,12 +206,11 @@ pub fn proxy(root: &TokenStream, i: &Interface, opts: &Opts, g: &pit_rust_guest:
                 let x = unsafe{
                     &mut *(self.0.get())
                 }.as_mut().unwrap().#{format_ident!("{a}")}(#(#params),*);
-
                 Ok((#(#rets),*))
             }
         }
     });
-    quasiquote!{
+    quasiquote! {
         struct Compat<T>(#root::core::cell::UnsafeCell<Option<T>>);
         impl<U: 'static + #root::core::clone::Clone,E: #root::wasm_runtime_layer::backend::WasmEngine> #pid for #root::W<#root::RWrapped<U,E>,U,E>{
             #(#impl_guest)*
@@ -268,7 +269,7 @@ pub fn render_blit(root: &TokenStream, p: &Arg) -> TokenStream {
         Arg::Resource { .. } => quote! {
             #root::wasm_runtime_layer::ValueType::ExternRef
         },
-        _ => todo!()
+        _ => todo!(),
     }
 }
 pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
@@ -319,7 +320,7 @@ pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
                 }
             }
         },
-        _ => todo!()
+        _ => todo!(),
     }
 }
 pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStream {
@@ -361,7 +362,6 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
                         #root::core::result::Result::Ok(t) => Arc::new(t.clone()),
                         #root::core::result::Result::Err(_) =>                     #root::anyhow::bail!("invalid param")
                         }
-
                 }.to_tokens(&mut a);
             }
             if !*nullable {
@@ -374,8 +374,8 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
                 .to_tokens(&mut a)
             }
             a
-        },
-        _ => todo!()
+        }
+        _ => todo!(),
     };
     quote! {
         {
@@ -434,7 +434,7 @@ pub fn render_new_val(root: &TokenStream, p: &Arg, t: TokenStream) -> TokenStrea
                     }})
                 }
             }
-        },
-        _ => todo!()
+        }
+        _ => todo!(),
     }
 }
