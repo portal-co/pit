@@ -614,6 +614,20 @@ dependencies = [
  "nom",
  "pit-core",
  "pit-rust-guest",
+ "pit-rust-host-core",
+ "proc-macro2",
+ "quasiquote",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
+name = "pit-rust-host-core"
+version = "0.4.0"
+dependencies = [
+ "hex",
+ "nom",
+ "pit-core",
  "proc-macro2",
  "quasiquote",
  "quote",

@@ -11,7 +11,7 @@ members = [
     "crates/tpit-rt",
     "crates/pit-cli",
     "crates/pit-rust-host",
-    "crates/pit-wit-bridge",
+    "crates/pit-wit-bridge", "crates/pit-rust-host-core",
 ]
 resolver = "2"
 

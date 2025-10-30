@@ -1,7 +1,7 @@
 [package]
-name = "pit-rust-host"
-version = "0.3.2"
-edition = "2021"
+name = "pit-rust-host-core"
+version = "0.4.0"
+edition = "2024"
 license = "CC0-1.0"
 description = "Portal Interface Types"
 
@@ -12,8 +12,6 @@ hex = "0.4.3"
 nom = "^8"
 pit-core.workspace = true
 # portal-pc-waffle.workspace = true
-pit-rust-guest = { version = "0.4.0", path = "../pit-rust-guest" }
-pit-rust-host-core = {version = "0.4.0",path = "../pit-rust-host-core"}
 proc-macro2 = "1.0.85"
 quasiquote = "0.1.1"
 quote = "1.0.36"
