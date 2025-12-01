@@ -1,6 +1,60 @@
+//! # PIT C Code Generator
+//!
+//! Generates C header files from PIT interface definitions.
+//!
+//! This crate provides functionality to convert PIT interfaces into C header files
+//! that can be used to implement or consume PIT resources from C code.
+//!
+//! ## Generated Code
+//!
+//! For each PIT interface, this crate generates:
+//! - Struct definitions for method results
+//! - Interface macro definitions using interface99
+//! - Import/export function declarations with proper WebAssembly attributes
+//! - Helper macros for resource management
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_core::parse_interface;
+//! use pit_c::cify;
+//!
+//! let interface_str = "{ method(I32) -> (I64); }";
+//! let (_, interface) = parse_interface(interface_str).unwrap();
+//! let c_header = cify(&interface);
+//! ```
+//!
+//! ## Dependencies
+//!
+//! The generated C code requires:
+//! - `interface99.h` - For interface/trait implementation
+//! - `handle.h` - For handle management
+//! - `stdint.h` - For fixed-width integer types
+
 use itertools::Itertools;
 use pit_core::{Arg, Interface, ResTy};
 use std::iter::once;
+
+/// Generates a C header file from a PIT interface definition.
+///
+/// # Arguments
+///
+/// * `i` - The PIT interface to convert
+///
+/// # Returns
+///
+/// A string containing the complete C header file content, including:
+/// - Include guards
+/// - Type definitions for method results
+/// - Interface trait definitions
+/// - Import/export function implementations
+///
+/// # Example
+///
+/// ```ignore
+/// let c_code = cify(&my_interface);
+/// std::fs::write("MyInterface.h", c_code)?;
+/// ```
 pub fn cify(i: &Interface) -> String {
     let rid = i.rid_str();
     let iface = i
@@ -181,10 +235,28 @@ pub fn cify(i: &Interface) -> String {
     "#
     )
 }
+/// FFI kind enumeration for type conversion.
+///
+/// Determines whether a type should be rendered for the WebAssembly FFI boundary
+/// or for high-level C code.
 pub enum FFIKind {
+    /// Raw WebAssembly FFI type (uses `__externref_t` for resources)
     FFI,
+    /// High-level C type (uses concrete resource types)
     C {},
 }
+
+/// Converts a PIT argument type to its C representation.
+///
+/// # Arguments
+///
+/// * `i` - The containing interface (used for `this` type resolution)
+/// * `t` - The PIT argument type to convert
+/// * `ffi_kind` - Whether to generate FFI or high-level C types
+///
+/// # Returns
+///
+/// A string containing the C type name.
 pub fn cty(i: &Interface, t: &Arg, ffi_kind: &FFIKind) -> String {
     match t {
         Arg::I32 => format!("uint32_t"),

@@ -1,3 +1,33 @@
+//! # TPIT Runtime
+//!
+//! Tablified PIT (TPIT) runtime library for WebAssembly.
+//!
+//! TPIT provides a table-based emulation layer for `externref` on WebAssembly platforms
+//! that don't natively support the reference types proposal. Instead of using actual
+//! `externref` values, TPIT uses integer handles that index into a WebAssembly table.
+//!
+//! ## Overview
+//!
+//! The [`Tpit`] type wraps an integer handle that represents a resource reference.
+//! When the handle is dropped, it calls the TPIT drop function to release the
+//! underlying resource.
+//!
+//! ## Usage
+//!
+//! This crate is typically used as a dependency for generated PIT guest code when
+//! targeting platforms without externref support. The generated code will use
+//! `Tpit<T>` instead of `externref::Resource<T>`.
+//!
+//! ## Safety
+//!
+//! The [`Tpit::new`] and [`Tpit::summon`] functions are unsafe because they create
+//! handles from raw integers without verifying that the handle is valid.
+//!
+//! ## no_std
+//!
+//! This crate is `no_std` compatible and can be used in WebAssembly environments
+//! without the standard library.
+
 #![no_std]
 use core::{
     marker::PhantomData,
@@ -8,6 +38,28 @@ use core::{
         // Arc,
     },
 };
+
+/// A tablified PIT resource handle.
+///
+/// `Tpit<D>` wraps an integer handle that refers to a resource in a WebAssembly table.
+/// The type parameter `D` is a phantom type used to distinguish different resource types
+/// at compile time.
+///
+/// When dropped, this type automatically calls the TPIT drop function to release the
+/// underlying resource.
+///
+/// # Example
+///
+/// ```ignore
+/// // Typically created by generated code
+/// let resource: Tpit<MyResource> = unsafe { Tpit::new(handle) };
+///
+/// // Get the raw pointer value
+/// let ptr = resource.ptr();
+///
+/// // Consume without dropping (transfers ownership)
+/// let raw = resource.forget_to_ptr();
+/// ```
 #[repr(transparent)]
 pub struct Tpit<D> {
     ptr: Option<NonZeroU32>,
@@ -28,12 +80,24 @@ impl<D> Drop for Tpit<D> {
     }
 }
 impl<D> Tpit<D> {
+    /// Creates a new `Tpit` handle from a raw integer pointer.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `ptr` is a valid handle obtained from the TPIT
+    /// runtime. Using an invalid handle may lead to undefined behavior.
+    ///
+    /// A `ptr` value of 0 is treated as a null reference.
     pub unsafe fn new(ptr: u32) -> Self {
         Self {
             ptr: NonZeroU32::new(ptr),
             phantom: PhantomData,
         }
     }
+
+    /// Returns the raw integer handle value.
+    ///
+    /// Returns 0 if this is a null reference.
     pub fn ptr(&self) -> u32 {
         match self.ptr {
             Some(a) => {
@@ -43,14 +107,32 @@ impl<D> Tpit<D> {
             None => 0,
         }
     }
+
+    /// Casts this handle to a different resource type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the underlying resource is actually of type `U`.
     pub unsafe fn cast<U>(self) -> Tpit<U> {
         unsafe { Tpit::<U>::new(self.forget_to_ptr()) }
     }
+
+    /// Consumes the handle and returns the raw pointer value without calling drop.
+    ///
+    /// This is useful for transferring ownership of the resource to another handle
+    /// or to foreign code.
     pub fn forget_to_ptr(self) -> u32 {
         let x = self.ptr();
         forget(self);
         return x;
     }
+
+    /// Creates a mutable reference to a `Tpit` from a mutable reference to a raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the memory layout is correct and that the
+    /// lifetime of the returned reference does not exceed the input reference.
     pub unsafe fn summon(a: &mut u32) -> &mut Self {
         unsafe { core::mem::transmute(a) }
     }

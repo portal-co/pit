@@ -1,3 +1,28 @@
+//! # PIT Rust Host Code Generator
+//!
+//! Full code generation for PIT host bindings, including guest proxying.
+//!
+//! This crate builds on [`pit_rust_host_core`] to provide complete host binding
+//! generation, optionally including proxy implementations for guest interfaces.
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_rust_host::{render, Opts};
+//! use quote::quote;
+//!
+//! let opts = Opts {
+//!     guest: Some(pit_rust_guest::Opts {
+//!         root: quote! { ::tpit_rt },
+//!         salt: vec![],
+//!         tpit: true,
+//!     }),
+//!     core: Default::default(),
+//! };
+//!
+//! let code = render(&quote! { crate }, &interface, &opts);
+//! ```
+
 use pit_core::{Arg, Interface, ResTy, Sig};
 pub use pit_rust_host_core::*;
 use proc_macro2::{Span, TokenStream};
@@ -5,12 +30,29 @@ use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
 use std::iter::once;
 use syn::{spanned::Spanned, Ident, Index};
+
+/// Configuration options for host code generation.
 #[derive(Default)]
 #[non_exhaustive]
 pub struct Opts {
+    /// Optional guest binding options for generating proxy implementations.
     pub guest: Option<pit_rust_guest::Opts>,
+    /// Core host code generation options.
     pub core: pit_rust_host_core::Opts,
 }
+
+/// Renders a PIT interface as complete Rust host binding code.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix for runtime types
+/// * `i` - The PIT interface to render
+/// * `opts` - Code generation options
+///
+/// # Returns
+///
+/// A `TokenStream` containing the generated Rust code, including both
+/// the core host bindings and any guest proxy implementations.
 pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
     let p = match opts.guest.as_ref() {
         None => quote! {},

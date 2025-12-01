@@ -1,3 +1,35 @@
+//! # PIT CLI
+//!
+//! Command-line interface for Portal Interface Types operations.
+//!
+//! This tool provides various subcommands for working with PIT interfaces
+//! and WebAssembly modules.
+//!
+//! ## Subcommands
+//!
+//! - `untpit` - Convert TPIT module to externref-based PIT
+//! - `jigger` - Generate unique IDs based on module content
+//! - `lower` - Lower externref types to table indices
+//! - `embed` - Embed interface definitions in a module
+//! - `rust-guest` - Generate Rust guest bindings
+//! - `teavm` - Generate Scala/TeaVM bindings
+//! - `gen-c` - Generate C header files
+//! - `package` - Generate a complete multi-language package
+//! - `hash` - Compute interface hash
+//!
+//! ## Examples
+//!
+//! ```bash
+//! # Generate Rust bindings
+//! pit rust-guest interface.pit bindings.rs
+//!
+//! # Lower a module
+//! pit lower input.wasm output.wasm
+//!
+//! # Generate all bindings
+//! pit package interface.pit ./output-dir
+//! ```
+
 use anyhow::Context;
 use base64::Engine;
 use pit_patch::{get_interfaces, lower::Cfg};
@@ -6,6 +38,8 @@ use portal_pc_waffle::{
     i2x, x2i, ImportKind,
 };
 use std::{collections::BTreeSet, fs, iter::once};
+
+/// TeaVM interop library version used for generated code.
 const TEAVM_INTEROP_VER: &'static str = "0.10.2";
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args();

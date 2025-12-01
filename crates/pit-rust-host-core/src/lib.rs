@@ -1,14 +1,53 @@
+//! # PIT Rust Host Core
+//!
+//! Core code generation for PIT host bindings.
+//!
+//! This crate provides the core functionality for generating Rust code that can
+//! host PIT-enabled WebAssembly modules. It generates trait definitions and
+//! implementations that bridge between Rust code and WebAssembly resources.
+//!
+//! ## Generated Code
+//!
+//! For each PIT interface, this crate generates:
+//! - A trait definition with all interface methods
+//! - Method dispatch implementations for wrapped resources
+//! - Value conversion between Rust types and WebAssembly values
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_rust_host_core::{render, Opts};
+//! use quote::quote;
+//!
+//! let opts = Opts::default();
+//! let code = render(&quote! { crate }, &interface, &opts);
+//! ```
+
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::{Span, TokenStream};
 use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
 use std::iter::once;
 use syn::{spanned::Spanned, Ident, Index};
+
+/// Configuration options for host code generation.
 #[derive(Default)]
 #[non_exhaustive]
 pub struct Opts {
     // pub guest: Option<pit_rust_guest::Opts>,
 }
+
+/// Renders a PIT interface as Rust host binding code.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix for runtime types
+/// * `i` - The PIT interface to render
+/// * `opts` - Code generation options
+///
+/// # Returns
+///
+/// A `TokenStream` containing the generated Rust code.
 pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
     let id = format_ident!("B{}", i.rid_str());
     // let internal = format_ident!("{id}_utils");
@@ -95,6 +134,18 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
         }
     }
 }
+/// Renders a method signature as Rust code for host bindings.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `s` - The method signature
+/// * `self_` - The self parameter
+/// * `s2` - Additional context parameter (typically the store context)
+///
+/// # Returns
+///
+/// A `TokenStream` containing the function signature.
 pub fn render_sig(
     root: &TokenStream,
     s: &Sig,
@@ -113,6 +164,16 @@ pub fn render_sig(
         (#(#params),*) -> #root::anyhow::Result<(#(#rets),*)>
     }
 }
+/// Renders a PIT argument type as a WebAssembly value type expression.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `p` - The argument type
+///
+/// # Returns
+///
+/// A `TokenStream` containing the `ValueType` variant.
 pub fn render_blit(root: &TokenStream, p: &Arg) -> TokenStream {
     match p {
         Arg::I32 => quote! {
@@ -133,6 +194,16 @@ pub fn render_blit(root: &TokenStream, p: &Arg) -> TokenStream {
         _ => todo!(),
     }
 }
+/// Renders a method signature as a WebAssembly `FuncType` expression.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `s` - The method signature
+///
+/// # Returns
+///
+/// A `TokenStream` containing the `FuncType::new` call.
 pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
     quasiquote! {
         #root::wasm_runtime_layer::FuncType::new([#{
@@ -147,6 +218,16 @@ pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
             }}].into_iter())
     }
 }
+/// Renders a PIT argument type as a Rust type for host bindings.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `p` - The argument type
+///
+/// # Returns
+///
+/// A `TokenStream` containing the Rust type.
 pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
     match p {
         Arg::I32 => quote! {
@@ -184,6 +265,17 @@ pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
         _ => todo!(),
     }
 }
+/// Renders code to extract a value from a `wasm_runtime_layer::Value`.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `p` - The expected argument type
+/// * `x` - The expression containing the `Value`
+///
+/// # Returns
+///
+/// A `TokenStream` containing the extraction code.
 pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStream {
     let v = match p {
         Arg::I32 => quote! {
@@ -244,6 +336,17 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
         }
     }
 }
+/// Renders code to create a `wasm_runtime_layer::Value` from a Rust value.
+///
+/// # Arguments
+///
+/// * `root` - The crate path prefix
+/// * `p` - The argument type
+/// * `t` - The expression containing the Rust value
+///
+/// # Returns
+///
+/// A `TokenStream` containing the value creation code.
 pub fn render_new_val(root: &TokenStream, p: &Arg, t: TokenStream) -> TokenStream {
     match p {
         Arg::I32 => quote! {

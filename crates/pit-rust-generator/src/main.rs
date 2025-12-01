@@ -1,3 +1,24 @@
+//! # PIT Rust Generator
+//!
+//! Standalone executable for generating Rust code from PIT interface files.
+//!
+//! This is a command-line wrapper around [`pit_rust_guest`] that reads a PIT
+//! interface file, generates Rust code, and writes it to a file or stdout.
+//!
+//! ## Usage
+//!
+//! ```bash
+//! # Generate to file
+//! pit-rust-generator input.pit output.rs
+//!
+//! # Generate to stdout
+//! pit-rust-generator input.pit
+//! ```
+//!
+//! ## Environment Variables
+//!
+//! - `PIT_SALT` - Additional salt to include in unique ID generation
+
 use anyhow::{anyhow, Context};
 use pit_rust_guest::Opts;
 use quote::quote;
