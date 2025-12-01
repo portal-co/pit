@@ -140,6 +140,9 @@ The `common/` directory contains standard PIT interface definitions:
 # Generate Rust guest bindings
 pit rust-guest <input.pit> <output.rs>
 
+# Generate Rust guest bindings, preserving existing doc comments
+pit rust-guest <input.pit> --preserve-docs <output.rs>
+
 # Generate C header
 pit gen-c <input.pit> <output.h>
 
