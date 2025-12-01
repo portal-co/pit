@@ -1,3 +1,28 @@
+//! # 32-bit Buffer FFI
+//!
+//! This module contains the auto-generated FFI bindings for the 32-bit buffer interface.
+//!
+//! The resource ID `867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5`
+//! corresponds to the `buffer.pit` interface definition:
+//!
+//! ```text
+//! {
+//!     read8(I32) -> (I32);
+//!     write8(I32, I32) -> ();
+//!     size() -> (I32)
+//! }
+//! ```
+
+/// A 32-bit addressable byte buffer interface.
+///
+/// This trait defines the fundamental operations for reading and writing bytes
+/// to a buffer with 32-bit addressing.
+///
+/// # Methods
+///
+/// - `read8(offset)` - Read a single byte at the given offset
+/// - `write8(offset, value)` - Write a single byte at the given offset
+/// - `size()` - Get the total size of the buffer in bytes
 pub trait R867207405fe87fda620c2d7a5485e8e5e274636a898a166fb674448b4391ffc5 {
     fn read8(&mut self, p0: u32) -> (u32);
     fn size(&mut self) -> (u32);
