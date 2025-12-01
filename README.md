@@ -71,11 +71,55 @@ pit/<resource id>.~<method>
 
 Drop methods are called via `pit.drop`
 
-### ABI v2 (TPIT)
+### ABI v2 (WIP)
 
-All ABI v2 import modules and exports start with `pitx` or `tpit`.
+All ABI v2 import modules and exports start with `pitx`. This version is still work in progress.
 
-TPIT (Tablified PIT) uses WebAssembly tables to emulate externref on platforms that don't support it natively.
+## TPIT (Tablified PIT)
+
+TPIT is an intermediate binary format used in the compilation pipeline for ABI v1. It uses WebAssembly tables to emulate `externref` on platforms that don't support it natively, allowing code to be written using table-based handles that are later converted to proper PIT ABI v1 externref calls.
+
+### Compilation Flow
+
+The typical workflow for compiling Rust or LLVM-based code to PIT ABI v1:
+
+```
+┌─────────────────┐
+│  Rust / LLVM    │
+│  Source Code    │
+└────────┬────────┘
+         │ compile with TPIT bindings
+         ▼
+┌─────────────────┐
+│   TPIT Module   │  (uses tpit/* imports, table-based handles)
+│   (.wasm)       │
+└────────┬────────┘
+         │ pit untpit
+         ▼
+┌─────────────────┐
+│   PIT ABI v1    │  (uses pit/* imports, externref-based)
+│   Module        │
+└─────────────────┘
+```
+
+### Example: Rust to PIT ABI v1
+
+1. **Generate TPIT bindings** from a PIT interface:
+   ```bash
+   pit rust-guest interface.pit bindings.rs
+   ```
+
+2. **Compile Rust code** that uses the generated bindings:
+   ```bash
+   cargo build --target wasm32-unknown-unknown --release
+   ```
+
+3. **Convert TPIT to PIT ABI v1**:
+   ```bash
+   pit untpit target/wasm32-unknown-unknown/release/my_module.wasm output.wasm
+   ```
+
+The resulting `output.wasm` uses PIT ABI v1 with proper `externref` handling.
 
 ## Common Interfaces
 

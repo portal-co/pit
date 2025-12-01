@@ -2,9 +2,19 @@
 //!
 //! Tablified PIT (TPIT) runtime library for WebAssembly.
 //!
-//! TPIT provides a table-based emulation layer for `externref` on WebAssembly platforms
+//! TPIT is an intermediate binary format used in the compilation pipeline for PIT ABI v1.
+//! It provides a table-based emulation layer for `externref` on WebAssembly platforms
 //! that don't natively support the reference types proposal. Instead of using actual
 //! `externref` values, TPIT uses integer handles that index into a WebAssembly table.
+//!
+//! ## Compilation Flow
+//!
+//! TPIT modules are typically produced by compiling Rust or LLVM code with TPIT bindings,
+//! then converted to PIT ABI v1 using `pit untpit`:
+//!
+//! ```text
+//! Rust/LLVM → TPIT Module → (pit untpit) → PIT ABI v1 Module
+//! ```
 //!
 //! ## Overview
 //!
@@ -14,9 +24,8 @@
 //!
 //! ## Usage
 //!
-//! This crate is typically used as a dependency for generated PIT guest code when
-//! targeting platforms without externref support. The generated code will use
-//! `Tpit<T>` instead of `externref::Resource<T>`.
+//! This crate is typically used as a dependency for generated PIT guest code.
+//! The generated code will use `Tpit<T>` instead of `externref::Resource<T>`.
 //!
 //! ## Safety
 //!
