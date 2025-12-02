@@ -1,9 +1,51 @@
+//! # PIT TeaVM Code Generator
+//!
+//! Generates Scala code for consuming PIT interfaces with TeaVM.
+//!
+//! [TeaVM](https://teavm.org/) is a compiler that translates JVM bytecode to WebAssembly.
+//! This crate generates Scala code that can be compiled with TeaVM to produce
+//! WebAssembly modules that consume PIT interfaces.
+//!
+//! ## Generated Code
+//!
+//! For each PIT interface, this crate generates:
+//! - A trait definition with all interface methods
+//! - An `Impl` class that wraps a handle and implements the trait
+//! - A companion object with instance management
+//! - Import/export annotations for TeaVM interop
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_teavm::{emit, Binders};
+//!
+//! let binders = Binders::default();
+//! let scala_code = emit(&interface, "com.example.pkg", &binders);
+//! ```
+//!
+//! ## Generics
+//!
+//! PIT interfaces can have generic parameters specified via the `[generics=N]`
+//! annotation, where N is the number of type parameters.
+
 use itertools::Itertools;
 use pit_core::{Arg, Interface, ResTy, Sig};
 use std::{
     collections::{BTreeMap, BTreeSet},
     iter::once,
 };
+
+/// Generates Scala code from a PIT interface definition.
+///
+/// # Arguments
+///
+/// * `i` - The PIT interface to convert
+/// * `pkg` - The Scala package name for the generated code
+/// * `binders` - Additional binder specifications for extensions
+///
+/// # Returns
+///
+/// A string containing the complete Scala source file.
 pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
     let generics: u32 = i
         .ann
@@ -543,10 +585,31 @@ pub fn emit(i: &Interface, pkg: &str, binders: &Binders) -> String {
         i.rid_str(),
     )
 }
+/// FFI status for type emission.
+///
+/// Controls whether types are rendered for the WebAssembly FFI boundary
+/// or for high-level Scala code.
 pub enum FFIStatus {
+    /// Raw WebAssembly FFI types (uses `Int` for all resources).
     FFI,
-    HighLevel { generics: u32 },
+    /// High-level Scala types with generics support.
+    HighLevel {
+        /// Number of generic type parameters in scope.
+        generics: u32,
+    },
 }
+
+/// Processes instance type specifications from annotations.
+///
+/// # Arguments
+///
+/// * `instances` - Slice of instance specification strings
+/// * `rid` - Optional resource ID for `this` type resolution
+/// * `generics` - Number of generic parameters in scope
+///
+/// # Returns
+///
+/// A tuple of (resolved type names, formatted generic string).
 pub fn do_instances<'a>(
     instances: &[&str],
     rid: impl Into<Option<&'a str>>,
@@ -591,6 +654,17 @@ pub fn do_instances<'a>(
     };
     return (is2, instance_renders);
 }
+/// Converts a PIT argument type to its Scala representation.
+///
+/// # Arguments
+///
+/// * `a` - The PIT argument type
+/// * `rid` - Optional resource ID for `this` type resolution
+/// * `ffi` - Whether to generate FFI or high-level types
+///
+/// # Returns
+///
+/// A string containing the Scala type.
 pub fn emit_ty<'a>(a: &Arg, rid: impl Into<Option<&'a str>>, ffi: &FFIStatus) -> String {
     let rid = rid.into();
     match a {
@@ -642,6 +716,18 @@ pub fn emit_ty<'a>(a: &Arg, rid: impl Into<Option<&'a str>>, ffi: &FFIStatus) ->
         _ => todo!(),
     }
 }
+/// Renders a method signature as Scala code.
+///
+/// # Arguments
+///
+/// * `a` - The method signature
+/// * `rid` - Optional resource ID for `this` type resolution
+/// * `prepend` - Additional parameters to prepend
+/// * `ffi` - Whether to generate FFI or high-level types
+///
+/// # Returns
+///
+/// A string containing the Scala method signature.
 pub fn emit_sig<'a>(
     a: &Sig,
     rid: impl Into<Option<&'a str>>,
@@ -700,12 +786,31 @@ pub fn emit_sig<'a>(
             .join(",")
     )
 }
+/// Type alias for binder specifications.
+///
+/// Maps (name, package, exposition) to (signature, configuration).
 pub type Binders = BTreeMap<(String, String, Exposition), (Sig, String)>;
+
+/// Exposition mode for binder methods.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum Exposition {
+    /// Export the method to WebAssembly.
     Expose,
+    /// Import the method from WebAssembly.
     Import,
 }
+
+/// Generates a binder signature trait.
+///
+/// # Arguments
+///
+/// * `s` - The method signature
+/// * `name` - The binder name
+/// * `pkg` - The Scala package name
+///
+/// # Returns
+///
+/// A string containing the Scala trait definition.
 pub fn emit_binder_sig(s: &Sig, name: &str, pkg: &str) -> String {
     let rname = format!(".{name}@{s}");
     let generics2: u32 = s

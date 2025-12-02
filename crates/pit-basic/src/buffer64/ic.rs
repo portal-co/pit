@@ -1,5 +1,30 @@
+//! # IC Stable Structures Buffer Implementation
+//!
+//! Provides buffer trait implementations for Internet Computer stable memory.
+//!
+//! This module allows using IC stable structures as PIT buffers, enabling
+//! persistent storage on the Internet Computer platform.
+
 use ic_stable_structures::Memory;
+
+/// A wrapper that adapts an IC Memory to the PIT buffer interfaces.
+///
+/// This struct wraps any type implementing `ic_stable_structures::Memory`
+/// and provides implementations of both the 32-bit and 64-bit buffer traits.
+///
+/// # Example
+///
+/// ```ignore
+/// use ic_stable_structures::DefaultMemoryImpl;
+/// use pit_basic::buffer64::ic::MemBuf;
+///
+/// let memory = DefaultMemoryImpl::default();
+/// let mut buf = MemBuf { wrapped: memory };
+/// buf.write8(0, 42);
+/// assert_eq!(buf.read8(0), 42);
+/// ```
 pub struct MemBuf<T> {
+    /// The wrapped IC memory implementation.
     pub wrapped: T,
 }
 impl<T: Memory> super::R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d

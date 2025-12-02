@@ -1,3 +1,28 @@
+//! # 64-bit Buffer FFI
+//!
+//! This module contains the auto-generated FFI bindings for the 64-bit buffer interface.
+//!
+//! The resource ID `68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d`
+//! corresponds to the `buffer64.pit` interface definition:
+//!
+//! ```text
+//! {
+//!     read8(I64) -> (I32);
+//!     write8(I64, I32) -> ();
+//!     size() -> (I64)
+//! }
+//! ```
+
+/// A 64-bit addressable byte buffer interface.
+///
+/// This trait defines the fundamental operations for reading and writing bytes
+/// to a buffer with 64-bit addressing, suitable for large buffers.
+///
+/// # Methods
+///
+/// - `read8(offset)` - Read a single byte at the given 64-bit offset
+/// - `write8(offset, value)` - Write a single byte at the given 64-bit offset
+/// - `size()` - Get the total size of the buffer in bytes as a 64-bit value
 pub trait R68da167712ddf1601aed7908c99972e62a41bdea1e28b241306a6b58d29e532d {
     fn read8(&mut self, p0: u64) -> (u32);
     fn size(&mut self) -> (u64);

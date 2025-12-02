@@ -1,3 +1,30 @@
+//! # PIT Rust Host Library
+//!
+//! Runtime library for hosting PIT-enabled WebAssembly modules.
+//!
+//! This crate provides the runtime infrastructure for loading and executing
+//! WebAssembly modules that use PIT interfaces. It handles:
+//!
+//! - Setting up import functions for PIT interfaces
+//! - Managing resource lifecycles with proper drop semantics
+//! - Bridging between Rust trait objects and WebAssembly externrefs
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_rust_host_lib::{init, emit, Wrapped};
+//! use wasm_runtime_layer::{Imports, Store, Module};
+//!
+//! let mut imports = Imports::new();
+//! init(&mut imports, &mut store);
+//! emit(&mut imports, interface.into(), &module, &mut store);
+//! ```
+//!
+//! ## no_std
+//!
+//! This crate is `no_std` compatible, using `alloc` for dynamic allocation
+//! and `wasm_runtime_layer` as the WebAssembly runtime abstraction.
+
 #![no_std]
 #[doc(hidden)]
 pub extern crate alloc;
@@ -18,6 +45,16 @@ use wasm_runtime_layer::{
     backend::WasmEngine, AsContext, AsContextMut, Extern, ExternRef, Func, FuncType, Imports,
     Instance, Module, Store, StoreContext, StoreContextMut, Value, ValueType,
 };
+
+/// Initializes the PIT drop function in the imports table.
+///
+/// This function sets up the `pit.drop` import which is called when a resource
+/// handle is dropped. It must be called before instantiating any PIT module.
+///
+/// # Arguments
+///
+/// * `l` - The imports table to add the drop function to
+/// * `ctx` - A mutable store context
 pub fn init<U: AsRef<Instance> + 'static, E: WasmEngine>(
     l: &mut Imports,
     ctx: &mut impl AsContextMut<UserState = U, Engine = E>,
@@ -44,6 +81,15 @@ pub fn init<U: AsRef<Instance> + 'static, E: WasmEngine>(
         )),
     );
 }
+/// Converts a PIT argument type to a WebAssembly value type.
+///
+/// # Arguments
+///
+/// * `a` - The PIT argument type
+///
+/// # Returns
+///
+/// The corresponding WebAssembly value type.
 pub fn emit_ty(a: &Arg) -> ValueType {
     match a {
         Arg::I32 => ValueType::I32,
@@ -59,6 +105,19 @@ pub fn emit_ty(a: &Arg) -> ValueType {
         _ => todo!(), // Arg::Func(f) => ValueType::FuncRef,
     }
 }
+/// Emits import functions for a PIT interface.
+///
+/// This function sets up all the import functions needed by a WebAssembly module
+/// to consume a PIT interface. It creates:
+/// - Method dispatch functions for each interface method
+/// - Instance creation functions for each unique ID
+///
+/// # Arguments
+///
+/// * `l` - The imports table to add functions to
+/// * `rid` - The interface definition
+/// * `m` - The WebAssembly module being instantiated
+/// * `ctx` - A mutable store context
 pub fn emit<U: AsRef<Instance> + 'static, E: WasmEngine>(
     l: &mut Imports,
     rid: Arc<Interface>,
@@ -124,8 +183,19 @@ pub fn emit<U: AsRef<Instance> + 'static, E: WasmEngine>(
         };
     }
 }
+/// A wrapped PIT resource.
+///
+/// This struct holds a PIT interface reference along with the closure functions
+/// needed to implement each method and the drop handler.
+///
+/// # Type Parameters
+///
+/// * `U` - The user state type for the store
+/// * `E` - The WebAssembly engine backend
 pub struct Wrapped<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> {
+    /// The interface definition this resource implements.
     pub rid: Arc<Interface>,
+    /// Method implementations: index 0 is the drop handler, followed by each method.
     pub all: Vec<
         Arc<
             dyn Fn(StoreContextMut<'_, U, E>, Vec<Value>) -> anyhow::Result<Vec<Value>>
@@ -136,6 +206,22 @@ pub struct Wrapped<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> {
     // },
 }
 impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U, E> {
+    /// Creates a new wrapped resource from a WebAssembly instance.
+    ///
+    /// This function creates a `Wrapped` resource that delegates method calls
+    /// to the corresponding export functions in the WebAssembly instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `base` - The base arguments to pass to each method (typically the resource ID)
+    /// * `rid` - The interface definition
+    /// * `rs` - The unique ID of the implementation
+    /// * `instance` - The WebAssembly instance containing the implementation
+    /// * `store` - A mutable store context
+    ///
+    /// # Returns
+    ///
+    /// A new `Wrapped` instance ready for method dispatch.
     pub fn new(
         base: Vec<wasm_runtime_layer::Value>,
         rid: Arc<Interface>,
@@ -221,11 +307,29 @@ impl<U: 'static, E: wasm_runtime_layer::backend::WasmEngine> Wrapped<U, E> {
 //         self.all[0](vec![]).unwrap();
 //     }
 // }
+
+/// Type alias for an Arc-wrapped resource.
 pub type RWrapped<U, E> = ::alloc::sync::Arc<Wrapped<U, E>>;
+
+#[doc(hidden)]
 pub extern crate anyhow;
+#[doc(hidden)]
 pub extern crate wasm_runtime_layer;
+
+/// A wrapper that combines a resource with its store reference.
+///
+/// This is used for bridging between the host's trait object representation
+/// and the WebAssembly runtime.
+///
+/// # Type Parameters
+///
+/// * `X` - The wrapped value type
+/// * `U` - The user state type for the store
+/// * `E` - The WebAssembly engine backend
 pub struct W<X, U: 'static, E: WasmEngine> {
+    /// The wrapped value.
     pub r: X,
+    /// Reference to the store cell for accessing the WebAssembly store.
     pub store: Arc<StoreCell<U, E>>,
 }
 impl<U: 'static, E: WasmEngine, X: Clone> Clone for W<X, U, E> {
@@ -236,7 +340,16 @@ impl<U: 'static, E: WasmEngine, X: Clone> Clone for W<X, U, E> {
         }
     }
 }
+/// An unsafe cell wrapper for storing a WebAssembly store.
+///
+/// This is needed because the store cannot be shared between threads normally,
+/// but PIT needs to access it from multiple contexts.
+///
+/// # Safety
+///
+/// Users must ensure that the store is only accessed from one thread at a time.
 pub struct StoreCell<U, E: WasmEngine> {
+    /// The wrapped store in an unsafe cell.
     pub wrapped: UnsafeCell<Store<U, E>>,
 }
 unsafe impl<

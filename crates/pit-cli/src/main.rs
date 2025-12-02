@@ -1,3 +1,35 @@
+//! # PIT CLI
+//!
+//! Command-line interface for Portal Interface Types operations.
+//!
+//! This tool provides various subcommands for working with PIT interfaces
+//! and WebAssembly modules.
+//!
+//! ## Subcommands
+//!
+//! - `untpit` - Convert TPIT module to externref-based PIT
+//! - `jigger` - Generate unique IDs based on module content
+//! - `lower` - Lower externref types to table indices
+//! - `embed` - Embed interface definitions in a module
+//! - `rust-guest` - Generate Rust guest bindings
+//! - `teavm` - Generate Scala/TeaVM bindings
+//! - `gen-c` - Generate C header files
+//! - `package` - Generate a complete multi-language package
+//! - `hash` - Compute interface hash
+//!
+//! ## Examples
+//!
+//! ```bash
+//! # Generate Rust bindings
+//! pit rust-guest interface.pit bindings.rs
+//!
+//! # Lower a module
+//! pit lower input.wasm output.wasm
+//!
+//! # Generate all bindings
+//! pit package interface.pit ./output-dir
+//! ```
+
 use anyhow::Context;
 use base64::Engine;
 use pit_patch::{get_interfaces, lower::Cfg};
@@ -6,7 +38,39 @@ use portal_pc_waffle::{
     i2x, x2i, ImportKind,
 };
 use std::{collections::BTreeSet, fs, iter::once};
+
+/// TeaVM interop library version used for generated code.
 const TEAVM_INTEROP_VER: &'static str = "0.10.2";
+
+/// Extracts doc comments from the top of a Rust source file.
+/// Returns the doc comments as a string, or None if the file doesn't exist or has no doc comments.
+fn extract_top_doc_comments(path: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let mut doc_lines = Vec::new();
+    
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("//!") {
+            doc_lines.push(line.to_string());
+        } else if trimmed.is_empty() {
+            // Empty lines are okay between doc comments
+            if !doc_lines.is_empty() {
+                doc_lines.push(line.to_string());
+            }
+        } else {
+            // Stop at first non-doc-comment, non-empty line
+            break;
+        }
+    }
+    
+    if doc_lines.is_empty() {
+        None
+    } else {
+        // Add a blank line after doc comments
+        doc_lines.push(String::new());
+        Some(doc_lines.join("\n"))
+    }
+}
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args();
     args.next();
@@ -100,6 +164,7 @@ fn main() -> anyhow::Result<()> {
                 salt: vec![],
                 tpit: true,
             };
+            let mut preserve_docs = false;
             let b = loop {
                 let b = args.next().context("in getting the output")?;
                 let Some(c) = b.strip_prefix("-") else {
@@ -119,10 +184,25 @@ fn main() -> anyhow::Result<()> {
                 if c == "root" {
                     opts.root = syn::parse_str(&args.next().context("in getting the root")?)?;
                 }
+                if c == "-preserve-docs" {
+                    preserve_docs = true;
+                }
             };
             let a = pit_rust_guest::render(&opts, &a);
             let a = syn::parse2(a)?;
-            std::fs::write(b, prettyplease::unparse(&a))?;
+            let generated = prettyplease::unparse(&a);
+            
+            let output = if preserve_docs {
+                if let Some(doc_comments) = extract_top_doc_comments(&b) {
+                    format!("{}{}", doc_comments, generated)
+                } else {
+                    generated
+                }
+            } else {
+                generated
+            };
+            
+            std::fs::write(b, output)?;
         }
         "teavm" => {
             let a = args.next().context("in getting the input")?;

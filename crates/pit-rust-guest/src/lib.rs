@@ -1,3 +1,42 @@
+//! # PIT Rust Guest Code Generator
+//!
+//! Generates Rust code for implementing and consuming PIT interfaces in WebAssembly guest modules.
+//!
+//! This crate provides the [`render`] function which takes a PIT interface definition
+//! and generates Rust trait definitions along with the necessary FFI glue code for
+//! WebAssembly interoperability.
+//!
+//! ## Generated Code
+//!
+//! For each PIT interface, this crate generates:
+//! - A trait definition with all interface methods
+//! - FFI import declarations for calling methods on external resources
+//! - Export functions for implementing the interface
+//! - Conversion implementations for boxing trait objects
+//! - A static table for managing live objects
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use pit_rust_guest::{render, Opts};
+//! use quote::quote;
+//!
+//! let opts = Opts {
+//!     root: quote! { ::tpit_rt },
+//!     salt: vec![],
+//!     tpit: true,
+//! };
+//!
+//! let (_, interface) = pit_core::parse_interface("{ method(I32) -> (I64); }").unwrap();
+//! let code = render(&opts, &interface);
+//! ```
+//!
+//! ## Options
+//!
+//! - `root` - The crate path prefix for runtime types
+//! - `salt` - Additional bytes to include in the unique ID hash
+//! - `tpit` - Whether to use TPIT (table-based) or externref
+
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::TokenStream;
 use quasiquote::quasiquote;
@@ -5,11 +44,28 @@ use quote::{format_ident, quote};
 use sha3::Digest;
 use std::io::Write;
 use std::iter::once;
+
+/// Configuration options for Rust guest code generation.
 pub struct Opts {
+    /// The crate path prefix for runtime types (e.g., `::tpit_rt` or `::externref`).
     pub root: TokenStream,
+    /// Additional bytes to include in the unique ID hash for disambiguation.
     pub salt: Vec<u8>,
+    /// Whether to use TPIT (table-based externref emulation) or native externref.
     pub tpit: bool,
 }
+
+/// Renders a PIT interface as Rust code.
+///
+/// # Arguments
+///
+/// * `opts` - Code generation options
+/// * `i` - The PIT interface to render
+///
+/// # Returns
+///
+/// A `TokenStream` containing the generated Rust code, suitable for inclusion
+/// in a proc-macro or writing to a file after formatting.
 pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
     let root = &opts.root;
     let id = i.rid_str();
@@ -183,6 +239,20 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
             // }
     }
 }
+/// Renders a method signature as Rust code.
+///
+/// # Arguments
+///
+/// * `opts` - Code generation options
+/// * `root` - The crate path prefix
+/// * `base` - The containing interface (for `this` type resolution)
+/// * `s` - The method signature to render
+/// * `self_` - The self parameter declaration
+/// * `ffi` - Whether to render FFI-compatible types
+///
+/// # Returns
+///
+/// A `TokenStream` containing the rendered function signature.
 pub fn render_sig(
     opts: &Opts,
     root: &TokenStream,
@@ -203,6 +273,19 @@ pub fn render_sig(
         (#(#params),*) -> (#(#rets),*)
     }
 }
+/// Renders a PIT argument type as a Rust type.
+///
+/// # Arguments
+///
+/// * `opts` - Code generation options
+/// * `root` - The crate path prefix
+/// * `base` - The containing interface (for `this` type resolution)
+/// * `p` - The argument type to render
+/// * `ffi` - Whether to render FFI-compatible types
+///
+/// # Returns
+///
+/// A `TokenStream` containing the Rust type expression.
 pub fn render_ty(
     opts: &Opts,
     root: &TokenStream,
