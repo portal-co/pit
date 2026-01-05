@@ -1,4 +1,6 @@
-target
+.DS_Store
 .metals
 .scala-build
 .vscode
+node_modules
+target
