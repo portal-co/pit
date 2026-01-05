@@ -563,7 +563,7 @@ dependencies = [
 [[package]]
 name = "pit-core"
 version = "0.4.9"
-source = "git+https://github.com/portal-co/pit-core.git#09c6eec9a056da4cb48348045e3cf0c6c6e02bb3"
+source = "git+https://github.com/portal-co/pit-core.git#dfe64118da90f97bcf09d216b04189d2070473cb"
 dependencies = [
  "base64",
  "derive_more",
