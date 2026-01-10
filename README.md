@@ -208,3 +208,12 @@ cargo build --release
 ## License
 
 CC0-1.0 (Public Domain)
+
+## Goals
+- [ ] Add project goals
+
+## Progress
+- [ ] Initial setup
+
+---
+*AI assisted*
