@@ -13,4 +13,4 @@ pit-core.workspace = true
 wit-bindgen-core = "0.34.0"
 
 portal-pc-waffle.workspace = true
-pit-patch = { version = "^0.4.0", path = "../pit-patch" }
+pit-patch.workspace = true

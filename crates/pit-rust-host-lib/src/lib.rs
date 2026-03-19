@@ -348,23 +348,23 @@ impl<U: 'static, E: WasmEngine, X: Clone> Clone for W<X, U, E> {
 /// # Safety
 ///
 /// Users must ensure that the store is only accessed from one thread at a time.
-pub struct StoreCell<U, E: WasmEngine> {
+pub struct StoreCell<U: 'static, E: WasmEngine> {
     /// The wrapped store in an unsafe cell.
     pub wrapped: UnsafeCell<Store<U, E>>,
 }
 unsafe impl<
-        U: Send,
+        U: Send + 'static,
         E: Send + wasm_runtime_layer::backend::WasmEngine + wasm_runtime_layer::backend::WasmEngine,
     > Send for StoreCell<U, E>
 {
 }
 unsafe impl<
-        U: Sync,
+        U: Sync + 'static,
         E: Sync + wasm_runtime_layer::backend::WasmEngine + wasm_runtime_layer::backend::WasmEngine,
     > Sync for StoreCell<U, E>
 {
 }
-impl<U, E: WasmEngine> StoreCell<U, E> {
+impl<U: 'static, E: WasmEngine> StoreCell<U, E> {
     pub unsafe fn get(&self) -> StoreContextMut<'_, U, E> {
         unsafe { &mut *self.wrapped.get() }.as_context_mut()
     }

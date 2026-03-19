@@ -1,6 +1,6 @@
 [package]
 name = "tpit-rt"
-version = "0.4.0"
+version.workspace = true
 edition = "2021"
 license.workspace = true # = "CC0-1.0"
 description.workspace = true # = "Portal Interface Types for WebAssembly"

@@ -525,7 +525,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pit-basic"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "externref",
  "ic-stable-structures",
@@ -534,7 +534,7 @@ dependencies = [
 
 [[package]]
 name = "pit-c"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "pit-cli"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "pit-patch"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "anyhow",
  "hex",
@@ -587,14 +587,14 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-externref"
-version = "0.3.2"
+version = "0.5.0-alpha.1"
 dependencies = [
  "externref",
 ]
 
 [[package]]
 name = "pit-rust-generator"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "anyhow",
  "nom",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-guest"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "hex",
  "nom",
@@ -622,7 +622,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host"
-version = "0.3.2"
+version = "0.5.0-alpha.1"
 dependencies = [
  "hex",
  "nom",
@@ -637,7 +637,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host-core"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "hex",
  "nom",
@@ -650,7 +650,7 @@ dependencies = [
 
 [[package]]
 name = "pit-rust-host-lib"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "anyhow",
  "nom",
@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "pit-teavm"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 dependencies = [
  "hex",
  "itertools 0.13.0",
@@ -688,9 +688,45 @@ checksum = "c2a69ee997a6282f8462abf1e0d8c38c965e968799e912b3bed8c9e8a28c2f9f"
 
 [[package]]
 name = "portal-pc-waffle"
-version = "0.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "129eccbc902d2aa4892f85d7baa00980ed15215f9bcedbb13fb4564e13c34833"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "log",
+ "portal-pc-waffle-copying",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "portal-pc-waffle-passes",
+ "wasm-encoder",
+ "wasmparser 0.241.2",
+]
+
+[[package]]
+name = "portal-pc-waffle-copying"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "log",
+ "paste",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "portal-pc-waffle-passes-shared",
+]
+
+[[package]]
+name = "portal-pc-waffle-entity"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "arena-traits",
+ "serde",
+]
+
+[[package]]
+name = "portal-pc-waffle-ir"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
 dependencies = [
  "anyhow",
  "arena-traits",
@@ -701,11 +737,40 @@ dependencies = [
  "lending-iterator",
  "log",
  "paste",
+ "portal-pc-waffle-entity",
  "serde",
  "sha3",
  "smallvec",
  "wasm-encoder",
- "wasmparser 0.227.1",
+ "wasmparser 0.241.2",
+]
+
+[[package]]
+name = "portal-pc-waffle-passes"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "log",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "portal-pc-waffle-passes-shared",
+ "sha3",
+ "smallvec",
+]
+
+[[package]]
+name = "portal-pc-waffle-passes-shared"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "log",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "smallvec",
 ]
 
 [[package]]
@@ -894,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "tpit-rt"
-version = "0.4.0"
+version = "0.5.0-alpha.1"
 
 [[package]]
 name = "typenum"
@@ -954,18 +1019,18 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
-version = "0.227.1"
+version = "0.241.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80bb72f02e7fbf07183443b27b0f3d4144abf8c114189f2e088ed95b696a7822"
+checksum = "e01164c9dda68301e34fdae536c23ed6fe90ce6d97213ccc171eebbd3d02d6b8"
 dependencies = [
  "leb128fmt",
 ]
 
 [[package]]
 name = "wasm_runtime_layer"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38ccffca37862a8f398fe622f8dc749e0ed6056c71570b9812dce3a39ae86c6e"
+checksum = "d1ff59a4dd18b803a2292aad09d98b6aee2735a329982357b320ebded40d28c8"
 dependencies = [
  "anyhow",
  "fxhash",
@@ -995,9 +1060,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.227.1"
+version = "0.241.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f51cad774fb3c9461ab9bccc9c62dfb7388397b5deda31bf40e8108ccd678b2"
+checksum = "46d90019b1afd4b808c263e428de644f3003691f243387d30d673211ee0cb8e8"
 dependencies = [
  "bitflags",
 ]
