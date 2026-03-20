@@ -25,7 +25,6 @@
 
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::{Span, TokenStream};
-use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
 use std::iter::once;
 use syn::{spanned::Spanned, Ident, Index};
@@ -52,10 +51,12 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
     let id = format_ident!("B{}", i.rid_str());
     // let internal = format_ident!("{id}_utils");
     let methods = i.methods.iter().map(|(a, b)| {
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{render_sig(root,b,&quote! {&self},quote!{
-                ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
-            })}
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(root, b, &quote! {&self}, quote! {
+            ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
+        });
+        quote! {
+            fn #method_name #sig
         }
     });
     let impls = i.methods.iter().enumerate().map(|(c, (a, b))| {
@@ -63,19 +64,23 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             .params
             .iter()
             .enumerate()
-            .map(|(pi, a)| render_new_val(root, a, quasiquote! {#{format_ident!("p{pi}")}}));
+            .map(|(pi, a)| {
+                let param = format_ident!("p{pi}");
+                render_new_val(root, a, quote! {#param})
+            });
         let init =
             once(quote! {#root::wasm_runtime_layer::Value::I32(self.base as #root::core::primitive::i32)}).chain(init);
         let fini = b.rets.iter().enumerate().map(|(ri, r)| {
-            quasiquote! {
-                #{render_base_val(root, r, quote! {&rets[#ri]})}
-            }
+            render_base_val(root, r, quote! {&rets[#ri]})
         });
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{render_sig(root,b,&quote! {&self},quote!{
-                ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
-            })}{
-                let a = #root::core::clone::Clone::clone(&self.all[#{c+1}]);
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(root, b, &quote! {&self}, quote! {
+            ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
+        });
+        let c1 = c + 1;
+        quote! {
+            fn #method_name #sig {
+                let a = #root::core::clone::Clone::clone(&self.all[#c1]);
                 let args = #root::alloc::vec![#(#init),*];
                 let mut rets = a(ctx,args);
                 return Ok((#(#fini),*))
@@ -83,24 +88,38 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
         }
     });
     let injects = i.methods.iter().map(|(a,b)|{
-        let init = b.params.iter().enumerate().map(|(pi,a)|quasiquote!{#{render_base_val(root, a, quote! {&args[#pi + 1]})}});
+        let init = b.params.iter().enumerate().map(|(pi,a)| render_base_val(root, a, quote! {&args[#pi + 1]}));
         let fini = b.rets.iter().enumerate().map(|(ri,r)|{
-            quasiquote!{
-                #{render_new_val(root, r, quasiquote! {r . #{Index{index: ri as u32,span: root.span()}}})}
-            }
+            let idx = Index{index: ri as u32, span: root.span()};
+            render_new_val(root, r, quote! {r . #idx})
         });
-        quasiquote!{
+        let method_name = format_ident!("{a}");
+        quote!{
             let r = a.clone();
             #root::alloc::sync::Arc::new(ctx,move|ctx,args|{
-                let r = r.#{format_ident!("{a}")}(ctx,#(#init),*)
+                let r = r.#method_name(ctx,#(#init),*)
                 Ok(#root::alloc::vec![#(#fini),*])
             })
-    }});
+        }
+    });
     // let p = match opts.guest.as_ref() {
     //     None => quote! {},
     //     Some(g) => proxy(root, i, opts, g),
     // };
-    quasiquote! {
+    let i_str = i.to_string();
+    let all_items = {
+        let finalize_item = quote! {
+            let r = #root::core::clone::Clone::clone(&a);
+            unsafe{
+                #root::alloc::sync::Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
+            }
+        };
+        let all = once(finalize_item).chain(injects);
+        quote! {
+            #(#all),*
+        }
+    };
+    quote! {
         pub trait #id<U: 'static,E: #root::wasm_runtime_layer::backend::WasmEngine>{
             #(#methods)*
             unsafe fn finalize(&self, ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>) -> #root::anyhow::Result<()>;
@@ -116,18 +135,8 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
             impl<U: 'static,E: #root::wasm_runtime_layer::backend::WasmEngine> From<#root::alloc::sync::Arc<dyn $id<U,E>> for #root::RWrapped<U,E>{
                 fn from(a: #root::alloc::sync::Arc<dyn $id<U,E>>) -> Self{
                     Self{
-                        rid: #root::alloc::sync::Arc::new(#root::pit_core::Interface::parse_interface(#{i.to_string()}).ok().unwrap()),
-                        all: #root::alloc::vec![#{
-                            let all = once(quasiquote!{
-                                let r = #root::core::clone::Clone::clone(&a);
-                                unsafe{
-                                    #root::alloc::sync::Arc::new(move|ctx,args|{r.finalize(ctx);Ok(vec![])})
-                                }
-                            }).chain(injects);
-                            quote!{
-                                #(#all),*
-                            }
-                        }]
+                        rid: #root::alloc::sync::Arc::new(#root::pit_core::Interface::parse_interface(#i_str).ok().unwrap()),
+                        all: #root::alloc::vec![#all_items]
                     }
                 }
             }
@@ -157,7 +166,10 @@ pub fn render_sig(
         .iter()
         .map(|a| render_ty(root, a))
         .enumerate()
-        .map(|(a, b)| quasiquote!(#{format_ident!("p{a}")} : #b));
+        .map(|(a, b)| {
+            let name = format_ident!("p{a}");
+            quote!(#name : #b)
+        });
     let params = once(self_).cloned().chain(once(s2)).chain(params);
     let rets = s.rets.iter().map(|a| render_ty(root, a));
     quote! {
@@ -205,17 +217,17 @@ pub fn render_blit(root: &TokenStream, p: &Arg) -> TokenStream {
 ///
 /// A `TokenStream` containing the `FuncType::new` call.
 pub fn render_blit_sig(root: &TokenStream, s: &Sig) -> TokenStream {
-    quasiquote! {
-        #root::wasm_runtime_layer::FuncType::new([#{
-            let p = s.params.iter().map(|p|render_blit(root, p));
-            let p = once(quote! {#root::wasm_runtime_layer::ValueType::ExternRef}).chain(p);
-            quote! {
-                #(#p),*
-            }
-        }].into_iter(),[#{            let p = s.rets.iter().map(|p|render_blit(root, p));
-            quote! {
-                #(#p),*
-            }}].into_iter())
+    let params = {
+        let p = s.params.iter().map(|p| render_blit(root, p));
+        let p = once(quote! { #root::wasm_runtime_layer::ValueType::ExternRef }).chain(p);
+        quote! { #(#p),* }
+    };
+    let rets = {
+        let p = s.rets.iter().map(|p| render_blit(root, p));
+        quote! { #(#p),* }
+    };
+    quote! {
+        #root::wasm_runtime_layer::FuncType::new([#params].into_iter(),[#rets].into_iter())
     }
 }
 /// Renders a PIT argument type as a Rust type for host bindings.
@@ -252,7 +264,7 @@ pub fn render_ty(root: &TokenStream, p: &Arg) -> TokenStream {
                 #root::wasm_runtime_layer::ExternRef
             },
             _ => {
-                let a = quasiquote! {
+                let a = quote! {
                     #root::alloc::sync::Arc<#root::Wrapped<U,E>>
                 };
                 if *nullable {
@@ -310,7 +322,7 @@ pub fn render_base_val(root: &TokenStream, p: &Arg, x: TokenStream) -> TokenStre
                 }
             };
             if !matches!(ty, ResTy::None) {
-                quasiquote!{
+                quote!{
                     let t = match t.downcast::<'_,'_,                #root::alloc::sync::Arc<#root::Wrapped<U,E>>,U,E>(ctx){
                         #root::core::result::Result::Ok(t) => Arc::new(t.clone()),
                         #root::core::result::Result::Err(_) =>                     #root::anyhow::bail!("invalid param")
@@ -368,34 +380,42 @@ pub fn render_new_val(root: &TokenStream, p: &Arg, t: TokenStream) -> TokenStrea
             ann,
         } => {
             let tq = |t: TokenStream| {
-                quasiquote! {
+                let inner = match ty {
+                    ResTy::None => quote! {
+                        #root::wasm_runtime_layer::ExternRef::new(ctx,t)
+                    },
+                    _ => quote! {
+                        match t.to_any().downcast_ref::<#root::alloc::sync::Arc<#root::Wrapped<U,E>>>().cloned(){
+                            #root::core::option::Option::None =>                     #root::wasm_runtime_layer::ExternRef::new(ctx,t),
+                            #root::core::option::Option::Some(t) => #root::wasm_runtime_layer::ExternRef::new(ctx,t),
+                        }
+                    },
+                };
+                quote! {
                     {
                         let t = #t;
-                        #{match ty{
-                            ResTy::None => quote! {                    #root::wasm_runtime_layer::ExternRef::new(ctx,t)},
-                            _ => quote! {
-                                match t.to_any().downcast_ref::<#root::alloc::sync::Arc<#root::Wrapped<U,E>>>().cloned(){
-                                    #root::core::option::Option::None =>                     #root::wasm_runtime_layer::ExternRef::new(ctx,t),
-                                    #root::core::option::Option::Some(t) => #root::wasm_runtime_layer::ExternRef::new(ctx,t),
-                                }
-                            }
-                        }}
+                        #inner
                     }
                 }
             };
             if !*nullable {
-                quasiquote! {
-                    #root::wasm_runtime_layer::Value::ExternRef(Some(#{match ty{
-                        ResTy::None => t,
-                        _ => tq(t)
-                    }}))
+                let inner = match ty {
+                    ResTy::None => t,
+                    _ => tq(t),
+                };
+                quote! {
+                    #root::wasm_runtime_layer::Value::ExternRef(Some(#inner))
                 }
             } else {
-                quasiquote! {
-                    #root::wasm_runtime_layer::Value::ExternRef(#{match ty{
-                        ResTy::None => t,
-                        _ => quasiquote! {#t.map(|t|#{tq(quote! {t})})}
-                    }})
+                let inner = match ty {
+                    ResTy::None => t,
+                    _ => {
+                        let tq_t = tq(quote! {t});
+                        quote! {#t.map(|t|#tq_t)}
+                    }
+                };
+                quote! {
+                    #root::wasm_runtime_layer::Value::ExternRef(#inner)
                 }
             }
         }

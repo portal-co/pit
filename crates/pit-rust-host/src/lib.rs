@@ -26,7 +26,6 @@
 use pit_core::{Arg, Interface, ResTy, Sig};
 pub use pit_rust_host_core::*;
 use proc_macro2::{Span, TokenStream};
-use quasiquote::quasiquote;
 use quote::{format_ident, quote, ToTokens};
 use std::iter::once;
 use syn::{spanned::Spanned, Ident, Index};
@@ -58,9 +57,10 @@ pub fn render(root: &TokenStream, i: &Interface, opts: &Opts) -> TokenStream {
         None => quote! {},
         Some(g) => proxy(root, i, opts, g),
     };
-    quasiquote! {
-        #{pit_rust_host_core::render(root, i, &opts.core)}
-        #{p}
+    let core = pit_rust_host_core::render(root, i, &opts.core);
+    quote! {
+        #core
+        #p
     }
 }
 pub fn proxy(
@@ -82,52 +82,56 @@ pub fn proxy(
         }
     };
     let impl_guest = i.methods.iter().map(|(a, b)| {
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{pit_rust_guest::render_sig(g,root,i,b,&quote! {&mut self},false)}{
+        let method_name = format_ident!("{a}");
+        let sig = pit_rust_guest::render_sig(g, root, i, b, &quote! {&mut self}, false);
+        let params_tokens = {
+            let params = b.params.iter().enumerate().map(|(a,b)|{
+                let mut c = format_ident!("p{a}");
+                let mut c = quote!{
+                    #c
+                };
+                if let Arg::Resource { ty, nullable, take, ann } = b{
+                    c = quote!{#root::alloc::boxed::Box::new(#root::W{
+                        r: #root::RWrapped<U,E>::from(Arc::new(#c)),
+                        store: #root::core::clone::clone(&self.store)
+                    }).into()};
+                    if !take{
+                        c = quote!{&mut #c};
+                    };
+                }
+                c
+            });
+            quote! {
+                #(#params),*
+            }
+        };
+        let rets_tokens = {
+            let xs = b.rets.iter().enumerate().map(|(a,b)|{
+                let mut c = Index{
+                    index: a as u32,
+                    span: Span::call_site()
+                };
+                let mut c = quote!{
+                    r.#c
+                };
+                if let Arg::Resource { ty, nullable, take, ann } = b{
+                    c = quote!{
+                        #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::core::option::Option::Some(#c))))
+                    }
+                }
+                c
+            });
+            quote!{
+                #(#xs),*
+            }
+        };
+        quote! {
+            fn #method_name #sig {
                 let ctx = unsafe{
                     self.get()
                 };
-                let r = self.r.#{format_ident!("{a}")}(ctx,#{
-                    let params = b.params.iter().enumerate().map(|(a,b)|{
-                        let mut c = format_ident!("p{a}");
-                        let mut c = quote!{
-                            #c
-                        };
-                        if let Arg::Resource { ty, nullable, take, ann } = b{
-                            c = quote!{#root::alloc::boxed::Box::new(#root::W{
-                                r: #root::RWrapped<U,E>::from(Arc::new(#c)),
-                                store: #root::core::clone::clone(&self.store)
-                            }).into()};
-                            if !take{
-                                c = quote!{&mut #c};
-                            };
-                        }
-                        c
-                });
-                    quote! {
-                        #(#params),*
-                    }
-                }).unwrap();
-                return (#{
-                    let xs = b.rets.iter().enumerate().map(|(a,b)|{
-                        let mut c = Index{
-                            index: a as u32,
-                            span: Span::call_site()
-                        };
-                        let mut c = quote!{
-                            r.#c
-                        };
-                        if let Arg::Resource { ty, nullable, take, ann } = b{
-                            c = quote!{
-                                #root::RWrapped<U,E>::from(Compat(#root::core::cell::UnsafeCell::new(#root::core::option::Option::Some(#c))))
-                            }
-                        }
-                        c
-                    });
-                    quote!{
-                        #(#xs),*
-                    }
-                })
+                let r = self.r.#method_name(ctx,#params_tokens).unwrap();
+                return (#rets_tokens)
             };
         }
     });
@@ -146,39 +150,41 @@ pub fn proxy(
                 };
             }
             c
-    });
-    let rets = b.rets.iter().enumerate().map(|(a,b)|{
-        let mut c = Index{
-            index: a as u32,
-            span: Span::call_site()
-        };
-        let mut c = quote!{
-            r.#c
-        };
-        if let Arg::Resource { ty, nullable, take, ann } = b{
-            c = quote!{#root::alloc::boxed::Box::new(#root::W{
-                r: #root::RWrapped<U,E>::from(Arc::new(#c)),
-                store: #root::alloc::sync::Arc::new(#root::StoreCell{
-                    wrapped: #root::core::cell::UnsafeCell::new(#root::wasm_runtime_layer::Store::new(ctx.engine(),match ctx.data(){
-                        d => #root::core::clone::Clone::clone(d),
-                    }))
-                })
-            }).into()};
-        }
-        c
-    });
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{render_sig(root,b,&quote! {&self},quote!{
-                ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
-            })}{
+        });
+        let rets = b.rets.iter().enumerate().map(|(a,b)|{
+            let mut c = Index{
+                index: a as u32,
+                span: Span::call_site()
+            };
+            let mut c = quote!{
+                r.#c
+            };
+            if let Arg::Resource { ty, nullable, take, ann } = b{
+                c = quote!{#root::alloc::boxed::Box::new(#root::W{
+                    r: #root::RWrapped<U,E>::from(Arc::new(#c)),
+                    store: #root::alloc::sync::Arc::new(#root::StoreCell{
+                        wrapped: #root::core::cell::UnsafeCell::new(#root::wasm_runtime_layer::Store::new(ctx.engine(),match ctx.data(){
+                            d => #root::core::clone::Clone::clone(d),
+                        }))
+                    })
+                }).into()};
+            }
+            c
+        });
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(root, b, &quote! {&self}, quote! {
+            ctx: #root::wasm_runtime_layer::StoreContextMut<'_,U,E>
+        });
+        quote! {
+            fn #method_name #sig {
                 let x = unsafe{
                     &mut *(self.0.get())
-                }.as_mut().unwrap().#{format_ident!("{a}")}(#(#params),*);
+                }.as_mut().unwrap().#method_name(#(#params),*);
                 Ok((#(#rets),*))
             }
         }
     });
-    quasiquote! {
+    quote! {
         struct Compat<T>(#root::core::cell::UnsafeCell<Option<T>>);
         impl<U: 'static + #root::core::clone::Clone,E: #root::wasm_runtime_layer::backend::WasmEngine> #pid for #root::W<#root::RWrapped<U,E>,U,E>{
             #(#impl_guest)*

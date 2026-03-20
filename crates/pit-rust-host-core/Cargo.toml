@@ -13,6 +13,5 @@ nom = "^8"
 pit-core.workspace = true
 # portal-pc-waffle.workspace = true
 proc-macro2 = "1.0.85"
-quasiquote = "0.1.1"
 quote = "1.0.36"
 syn = "2.0.66"

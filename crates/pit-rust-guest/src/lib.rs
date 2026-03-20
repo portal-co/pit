@@ -39,7 +39,6 @@
 
 use pit_core::{Arg, Interface, ResTy, Sig};
 use proc_macro2::TokenStream;
-use quasiquote::quasiquote;
 use quote::{format_ident, quote};
 use sha3::Digest;
 use std::io::Write;
@@ -75,15 +74,18 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
     let ha = hex::encode(ha.finalize());
     let id2 = format_ident!("R{}", i.rid_str());
     let methods = i.methods.iter().map(|(a, b)| {
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{render_sig(opts,root,i,b,&quote! {&mut self},false)};
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(opts, root, i, b, &quote! {&mut self}, false);
+        quote! {
+            fn #method_name #sig;
         }
     });
     let xref = if opts.tpit {
         quote! {}
     } else {
-        quasiquote!(
-            #[#root::externref::externref(crate = #{quote! {#root::externref}.to_string()})]
+        let crate_str = quote! { #root::externref }.to_string();
+        quote!(
+            #[#root::externref::externref(crate = #crate_str)]
         )
     };
     let res = if opts.tpit {
@@ -106,69 +108,79 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
     };
     let t = if opts.tpit { "t" } else { "" };
     let impl_dyns = i.methods.iter().map(|(a, b)| {
-        quasiquote! {
-            fn #{format_ident!("{a}")}#{render_sig(opts,root,i,b,&quote! {&mut self},false)}{
-                #xref
-                #[link(wasm_import_module = #{format!("{t}pit/{}",i.rid_str())})]
-                extern "C"{
-                    #[link_name = #a]
-                    fn go #{render_sig(opts,root, i,b, &quote! {this: #rx},true)};
-                }
-                return unsafe{go(#{
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(opts, root, i, b, &quote! {&mut self}, false);
+        let sig_go = render_sig(opts, root, i, b, &quote! {this: #rx}, true);
+        let wasm_module = format!("{t}pit/{}", i.rid_str());
+        let self_arg = if opts.tpit {
+            quote! { self.ptr() }
+        } else {
+            quote! { self }
+        };
+        let params_tokens = {
+            let params = b.params.iter().enumerate().map(|(a,b)|{
+                let mut c = format_ident!("p{a}");
+                let mut c = quote!{
+                    #c
+                };
+                if let Arg::Resource { ty, nullable, take, ann } = b{
                     if opts.tpit{
-                        quote!{self.ptr()}
-                    }else{
-                        quote!{self}
-                    }
-                },#{
-                    let params = b.params.iter().enumerate().map(|(a,b)|{
-                        let mut c = format_ident!("p{a}");
-                        let mut c = quote!{
-                            #c
-                        };
-                        if let Arg::Resource { ty, nullable, take, ann } = b{
-                            if opts.tpit{
-                                if !*take{
-                                    c = quote!{
-                                        #root::tpit_rt::Tpit::summon(&mut #c)
-                                    }
-                                }
+                        if !*take{
+                            c = quote!{
+                                #root::tpit_rt::Tpit::summon(&mut #c)
                             }
                         }
-                        c
-                });
-                    quote! {
-                        #(#params),*
                     }
-                })};
+                }
+                c
+            });
+            quote! {
+                #(#params),*
+            }
+        };
+        quote! {
+            fn #method_name #sig {
+                #xref
+                #[link(wasm_import_module = #wasm_module)]
+                extern "C"{
+                    #[link_name = #a]
+                    fn go #sig_go;
+                }
+                return unsafe{go(#self_arg, #params_tokens)};
             }
         }
     });
-    let chains2 = i.methods.iter().map(|(a,b)|quasiquote! {
-       #xref
-        #[export_name = #{format!("{t}pit/{id}/~{ha}/{a}")}]
-        extern "C" fn #{format_ident!("{a}")}#{render_sig(opts,root,i,b,&quote! {id: u32},true)}{
-            return unsafe{&mut *(TABLE.all.get())}.get_mut(&id).unwrap().#{format_ident!("{a}")}(#{
-                let params = b.params.iter().enumerate().map(|(a,b)|{
-                    let mut c = format_ident!("p{a}");
-                    let mut c = quote!{
-                        #c
-                    };
-                    if let Arg::Resource { ty, nullable, take, ann } = b{
-                        if opts.tpit{
-                            if !*take{
-                                c = quote!{
-                                    #c.ptr()
-                                }
+    let chains2 = i.methods.iter().map(|(a,b)| {
+        let export_name = format!("{t}pit/{id}/~{ha}/{a}");
+        let method_name = format_ident!("{a}");
+        let sig = render_sig(opts, root, i, b, &quote! {id: u32}, true);
+        let params_tokens = {
+            let params = b.params.iter().enumerate().map(|(a,b)|{
+                let mut c = format_ident!("p{a}");
+                let mut c = quote!{
+                    #c
+                };
+                if let Arg::Resource { ty, nullable, take, ann } = b{
+                    if opts.tpit{
+                        if !*take{
+                            c = quote!{
+                                #c.ptr()
                             }
                         }
                     }
-                    c
-                });
-                quote! {
-                    #(#params),*
                 }
+                c
             });
+            quote! {
+                #(#params),*
+            }
+        };
+        quote! {
+           #xref
+            #[export_name = #export_name]
+            extern "C" fn #method_name #sig {
+                return unsafe{&mut *(TABLE.all.get())}.get_mut(&id).unwrap().#method_name(#params_tokens);
+            }
         }
     });
     let sb = i.to_string();
@@ -178,17 +190,18 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
         .cloned()
         .chain(once(0u8))
         .collect::<Vec<_>>();
-    quasiquote! {
+    let sc_len = sc.len();
+    let sc_tokens = quote! { [#(#sc),*] };
+    let drop_export_name = format!("{t}pit/{id}/~{ha}.drop");
+    let wasm_import_module = format!("pit/{}", i.rid_str());
+    let push_link_name = format!("~{ha}");
+    quote! {
         pub trait #id2{
             #(#methods)*
         }
             const _: () = {
                 #[link_section = ".pit-types"]
-                static SECTION_CONTENT: [u8; #{sc.len()}] = #{
-                    quote!{
-                        [#(#sc),*]
-                    }
-                };
+                static SECTION_CONTENT: [u8; #sc_len] = #sc_tokens;
                 fn alloc<T>(m: &mut ::std::collections::BTreeMap<u32,T>, x: T) -> u32{
                     let mut u = 0;
                     while m.contains_key(&u){
@@ -208,7 +221,7 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
                     #(#impl_dyns)*
                 }
                 #xref
-                #[export_name = #{format!("{t}pit/{id}/~{ha}.drop")}]
+                #[export_name = #drop_export_name]
                 extern "C" fn _drop(a: u32){
                     unsafe{
                         (&mut *(TABLE.all.get())).remove(&a)
@@ -218,9 +231,9 @@ pub fn render(opts: &Opts, i: &Interface) -> TokenStream {
                 impl From<Box<dyn #id2>> for #res<Box<dyn #id2>>{
                     fn from(a: Box<dyn #id2>) -> Self{
                         #xref
-                        #[link(wasm_import_module = #{format!("pit/{}",i.rid_str())})]
+                        #[link(wasm_import_module = #wasm_import_module)]
                         extern "C"{
-                            #[link_name = #{format!("~{ha}")}]
+                            #[link_name = #push_link_name]
                             fn _push(a: u32) -> #res<Box<dyn #id2>>;
                         }
                         return unsafe{
@@ -266,7 +279,10 @@ pub fn render_sig(
         .iter()
         .map(|a| render_ty(opts, root, base, a, ffi))
         .enumerate()
-        .map(|(a, b)| quasiquote!(#{format_ident!("p{a}")} : #b));
+        .map(|(a, b)| {
+            let name = format_ident!("p{a}");
+            quote!(#name : #b)
+        });
     let params = once(self_).cloned().chain(params);
     let rets = s.rets.iter().map(|a| render_ty(opts, root, base, a, ffi));
     quote! {
@@ -314,14 +330,20 @@ pub fn render_ty(
         } => {
             if !opts.tpit {
                 let ty = match ty {
-                    ResTy::Of(a) => quasiquote! {
-                        #root::externref::Resource<Box<dyn #{format_ident!("R{}",hex::encode(a))}>>
+                    ResTy::Of(a) => {
+                        let trait_name = format_ident!("R{}", hex::encode(a));
+                        quote! {
+                            #root::externref::Resource<Box<dyn #trait_name>>
+                        }
                     },
                     ResTy::None => quote! {
                         #root::externref::Resource<()>
                     },
-                    ResTy::This => quasiquote! {
-                        #root::externref::Resource<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
+                    ResTy::This => {
+                        let trait_name = format_ident!("R{}", base.rid_str());
+                        quote! {
+                            #root::externref::Resource<Box<dyn #trait_name>>
+                        }
                     },
                     _ => todo!(),
                 };
@@ -338,14 +360,20 @@ pub fn render_ty(
                 ty
             } else {
                 let ty = match ty {
-                    ResTy::Of(a) => quasiquote! {
-                        #root::tpit_rt::Tpit<Box<dyn #{format_ident!("R{}",hex::encode(a))}>>
+                    ResTy::Of(a) => {
+                        let trait_name = format_ident!("R{}", hex::encode(a));
+                        quote! {
+                            #root::tpit_rt::Tpit<Box<dyn #trait_name>>
+                        }
                     },
                     ResTy::None => quote! {
                         #root::tpit_rt::Tpit<()>
                     },
-                    ResTy::This => quasiquote! {
-                        #root::tpit_rt::Tpit<Box<dyn #{format_ident!("R{}",base.rid_str())}>>
+                    ResTy::This => {
+                        let trait_name = format_ident!("R{}", base.rid_str());
+                        quote! {
+                            #root::tpit_rt::Tpit<Box<dyn #trait_name>>
+                        }
                     },
                     _ => todo!(),
                 };
