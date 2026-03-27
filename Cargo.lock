@@ -572,8 +572,33 @@ dependencies = [
  "hex",
  "nom",
  "pit-core",
+ "pit-patch-core",
  "portal-pc-waffle",
  "sha3",
+]
+
+[[package]]
+name = "pit-patch-core"
+version = "0.5.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "hex",
+ "nom",
+ "pit-core",
+ "sha3",
+]
+
+[[package]]
+name = "pit-patch-direct"
+version = "0.5.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "hex",
+ "pit-core",
+ "pit-patch-core",
+ "sha3",
+ "wasm-encoder",
+ "wasmparser 0.241.2",
 ]
 
 [[package]]
@@ -680,10 +705,28 @@ version = "0.6.0-alpha.1"
 source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
 dependencies = [
  "log",
+ "portal-pc-waffle-backend",
  "portal-pc-waffle-copying",
  "portal-pc-waffle-entity",
+ "portal-pc-waffle-frontend",
  "portal-pc-waffle-ir",
  "portal-pc-waffle-passes",
+ "wasm-encoder",
+ "wasmparser 0.241.2",
+]
+
+[[package]]
+name = "portal-pc-waffle-backend"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "log",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "portal-pc-waffle-passes-shared",
+ "smallvec",
  "wasm-encoder",
  "wasmparser 0.241.2",
 ]
@@ -709,6 +752,20 @@ source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca
 dependencies = [
  "arena-traits",
  "serde",
+]
+
+[[package]]
+name = "portal-pc-waffle-frontend"
+version = "0.6.0-alpha.1"
+source = "git+httpsd://github.com/portal-co/waffle-.git#ba12e783374cdaf1c6255fca57c07f3b0cb06c36"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "log",
+ "portal-pc-waffle-entity",
+ "portal-pc-waffle-ir",
+ "wasm-encoder",
+ "wasmparser 0.241.2",
 ]
 
 [[package]]
@@ -990,6 +1047,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e01164c9dda68301e34fdae536c23ed6fe90ce6d97213ccc171eebbd3d02d6b8"
 dependencies = [
  "leb128fmt",
+ "wasmparser 0.241.2",
 ]
 
 [[package]]
@@ -1031,6 +1089,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46d90019b1afd4b808c263e428de644f3003691f243387d30d673211ee0cb8e8"
 dependencies = [
  "bitflags",
+ "hashbrown 0.15.5",
+ "indexmap",
+ "semver",
+ "serde",
 ]
 
 [[package]]

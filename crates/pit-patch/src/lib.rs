@@ -30,6 +30,7 @@ use alloc::{
 };
 use anyhow::Context;
 use pit_core::{Arg, Interface, Sig};
+use pit_patch_core;
 // use util::tfree;
 use crate::util::add_op;
 use portal_pc_waffle::{
@@ -89,12 +90,5 @@ pub fn get_interfaces(m: &Module) -> anyhow::Result<Vec<Interface>> {
         .custom_sections
         .get(".pit-types")
         .context("in getting type section")?;
-    let mut is = alloc::vec![];
-    for b in c.split(|a| *a == 0) {
-        let s = core::str::from_utf8(b)?;
-        let (s, i) = pit_core::parse_interface(s)
-            .map_err(|e: nom::Err<nom::error::Error<&str>>| anyhow::anyhow!("invalid pit"))?;
-        is.push(i);
-    }
-    return Ok(is);
+    pit_patch_core::pit_section::parse_pit_types_section(c)
 }

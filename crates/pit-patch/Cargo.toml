@@ -12,6 +12,7 @@ anyhow = "1.0.86"
 hex = "0.4.3"
 nom = "^8"
 pit-core.workspace = true
-portal-pc-waffle = { workspace = true, features = ["copying"] }
+pit-patch-core.workspace = true
+portal-pc-waffle = { workspace = true, features = ["copying", "frontend", "backend"] }
 sha3 = "0.10.8"
 # waffle-ast.workspace = true

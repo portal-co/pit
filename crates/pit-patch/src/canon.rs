@@ -16,6 +16,7 @@ use portal_pc_waffle::{
     WithNullable,
 };
 use portal_pc_waffle::{HeapType, WithMutablility};
+use portal_pc_waffle::backend::ModuleExt as _;
 use sha3::{Digest, Sha3_256};
 // use waffle_ast::{results_ref_2, Builder, Expr};
 // use crate::util::{talloc, tfree};
